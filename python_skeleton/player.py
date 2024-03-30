@@ -8,10 +8,9 @@ import pickle
 from typing import Optional
 import numpy as np
 
-from all_in import AllInPlayer
-from prob_bot import ProbPlayer
 from antiallin_prob import ArnavPlayer
 from bluff_prob import BluffPlayer
+from handranging import RangePlayer
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -35,10 +34,10 @@ class Player(Bot):
         Nothing.
         """
         
-        self.weighting = np.array([0.2, 0.7, 1.5])
+        self.weighting = np.array([0.02, 0.05, 0.83])
         self.c = 0.5
 
-        self.bots = {0: ProbPlayer(), 1: ArnavPlayer(), 2: BluffPlayer()}
+        self.bots = {0: ArnavPlayer(), 1: BluffPlayer(), 2: RangePlayer()}
 
         self.cur_bot = 0
         self.num_bots = len(self.bots)
@@ -100,6 +99,7 @@ class Player(Bot):
         self.payoffs[self.cur_bot] = (self.payoffs[self.cur_bot] * self.times_chosen[self.cur_bot] + terminal_state.deltas[active]) / (self.times_chosen[self.cur_bot] + 1)
         self.times_chosen[self.cur_bot] += 1
         self.bots[self.cur_bot].handle_round_over(game_state, terminal_state, active, is_match_over)
+        self.log.append(f"bot used: {self.cur_bot}, freq: {self.times_chosen[self.cur_bot]}")
         return self.log
 
     def get_action(self, observation: dict) -> Action:
