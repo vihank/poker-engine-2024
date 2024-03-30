@@ -211,12 +211,16 @@ class Game:
         filename = './all_results.csv'
         with open(filename, 'a', newline="") as file:
             csvwriter = csv.writer(file) # 2. create a csvwriter object
+            csvwriter.writerow([self.original_players[0].bankroll, self.original_players[1].bankroll])
+            num_raise = [getattr(player, "num_raise", 0)/ getattr(player, "num_runs") for player in self.original_players]
+            csvwriter.writerow(num_raise)
             
         file.close()
 
         if self.all_logs:
             self._finalize_log()
             add_match_entry(self.original_players[0].bankroll, self.original_players[1].bankroll)
+            
 
     def _finalize_log(self) -> None:
         """

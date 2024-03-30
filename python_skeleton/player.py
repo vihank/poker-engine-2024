@@ -24,7 +24,7 @@ class RangePlayer10(Bot):
     """
 
     def __init__(self,
-                 bluff1 = 1,
+                 bluff1 = 0.6,
                  bluff2 = 1,
                  bluff3 = 0.1,
                  range1 = 300,

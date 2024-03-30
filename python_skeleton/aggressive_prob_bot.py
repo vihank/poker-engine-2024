@@ -28,7 +28,12 @@ class ProbPlayer(Bot):
         Returns:
         Nothing.
         """
+        self.name = "aggro"
+        self.num_shoves = 0
+        self.num_rounds = 0
+        self.num_raises = 0
         self.log = []
+        self.bankroll = 0
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 
@@ -126,7 +131,9 @@ class ProbPlayer(Bot):
         self.log.append(f"Pot odds: {pot_odds}")
 
         # If the villain raised, adjust the probability
+        self.num_rounds += 1
         if continue_cost > 1:
+            self.num_raises += 1
             equity = (equity - 0.5) / 0.5
             self.log.append(f"Adjusted equity: {equity}")
         if equity > 0.9 and RaiseAction in observation["legal_actions"]:

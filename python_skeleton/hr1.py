@@ -14,7 +14,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayerK(Bot):
+class RangePlayer1(Bot):
     """
     A pokerbot.
     """
@@ -41,6 +41,7 @@ class RangePlayerK(Bot):
         Returns:
         Nothing.
         """
+        self.bankroll = 0
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []
@@ -56,6 +57,7 @@ class RangePlayerK(Bot):
         self.filter4 = filter4
         self.allin = allin
         self.allin2 = allin2
+        self.name = "hr1"
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 
@@ -209,4 +211,4 @@ class RangePlayerK(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayerK(), parse_args())
+    run_bot(RangePlayer1(), parse_args())

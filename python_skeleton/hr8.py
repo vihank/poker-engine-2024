@@ -60,6 +60,8 @@ class RangePlayer8(Bot):
         self.filter4 = filter4
         self.allin = allin
         self.allin2 = allin2
+        self.name = "hr8"
+        self.bankroll = 0
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 

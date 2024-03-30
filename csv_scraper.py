@@ -25,6 +25,9 @@ class HandData():
     def add_reward(self, reward):
         self.reward = reward
 
+    def add_num_raise(self, thing):
+        self.prop_raise = thing
+        
     def __repr__(self):
         return f"IsFirst: {self.isfirst}, Reward: {self.reward}, Hand: {self.hand}, Opponent Hand: {self.opp_hand}, Turns: {self.turns}"
 

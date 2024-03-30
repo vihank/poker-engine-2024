@@ -41,6 +41,8 @@ class RangePlayer5(Bot):
         Returns:
         Nothing.
         """
+        self.bankroll = 0
+        self.name = "hr5"
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []

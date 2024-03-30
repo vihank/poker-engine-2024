@@ -42,7 +42,8 @@ class Player(Bot):
         #np.array([0.01, 0.1, 0.05, 0.2, 0.4, 0.4, 0.9])
         self.weighting = np.array([0,0,0,0,0.1,0.1,0.9])
         self.c = 0.5
-
+        self.name = "p1"
+        self.bankroll = 0
         self.bots = {0: AntiAllInPlayer(), 
                      1: RangePlayer1(), 
                      2: RangePlayer2(),

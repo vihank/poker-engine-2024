@@ -14,7 +14,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayerK(Bot):
+class RangePlayer2(Bot):
     """
     A pokerbot.
     """
@@ -41,6 +41,8 @@ class RangePlayerK(Bot):
         Returns:
         Nothing.
         """
+        self.bankroll = 0
+        self.name = "hr2"
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []
@@ -209,4 +211,4 @@ class RangePlayerK(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayerK(), parse_args())
+    run_bot(RangePlayer2(), parse_args())

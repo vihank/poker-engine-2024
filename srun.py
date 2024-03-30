@@ -12,8 +12,22 @@ from typing import Deque, List
 
 
 from python_skeleton.bluff_prob import BluffPlayer
-from python_skeleton.prob_bot import ProbPlayer
 from python_skeleton.all_in import AllInPlayer
+from python_skeleton.past_hist import PastPlayer
+from python_skeleton.aggressive_prob_bot import ProbPlayer
+from python_skeleton.player1 import Player
+from python_skeleton.hr1 import RangePlayer1
+from python_skeleton.hr2 import RangePlayer2
+from python_skeleton.hr3 import RangePlayer3
+from python_skeleton.hr4 import RangePlayer4
+from python_skeleton.hr5 import RangePlayer5
+from python_skeleton.hr6 import RangePlayer6
+from python_skeleton.hr7 import RangePlayer7
+from python_skeleton.hr8 import RangePlayer8
+from python_skeleton.hr9 import RangePlayer9
+from python_skeleton.hr10 import RangePlayer10
+
+
 
 from engine.roundstate import RoundState
 from engine.evaluate import ShortDeck
@@ -231,7 +245,7 @@ class Game:
         for index, (player, delta) in enumerate(zip(self.players, round_state.deltas)):
 
             game_state = GameState(bankroll=player.bankroll, round_num=self.round_num, game_clock=0)
-            pRoundState = TerminalState(delta, board)
+            pRoundState = TerminalState(tuple(round_state.deltas), board)
 
             player.handle_round_over(game_state,pRoundState, active, last_round)
             player.bankroll += delta
@@ -239,7 +253,12 @@ class Game:
             if player.name == self.original_players[0].name:
                 episode.add_reward(player.bankroll)
 
-        if self.logging: self.log_terminal_state(round_state)
+        if self.logging: 
+            self.log_terminal_state(round_state)
+            num_raise = [getattr(player, "num_raises", 0)/ getattr(player, "num_rounds", 1) for player in self.players]
+            self.log.append(f"{self.original_players[0].name} numraise something: {num_raise[0]}")
+            self.log.append(f"{self.original_players[1].name} numraise something: {num_raise[1]}")
+            episode.add_num_raise(num_raise)
 
         if self.ret: return episode
 
@@ -368,8 +387,17 @@ class Game:
 
 if __name__ == '__main__':
     game = Game(logging=True, ret=True)
-    for info in game.run_match([ProbPlayer(), BluffPlayer()]):
-        print(info)
-    print(game.players[0].bankroll, game.players[1].bankroll)
+    for strat in [Player(),
+                  RangePlayer1(),
+                  RangePlayer2(),
+                  RangePlayer3(),
+                  RangePlayer4(),
+                  RangePlayer5(),
+                  RangePlayer6(),
+                  RangePlayer7(),
+                  RangePlayer8(),
+                  RangePlayer9(),
+                  RangePlayer10()]:
+        print(f"{list(game.run_match([ProbPlayer(), strat]))[-1].prop_raise} against {strat.name}")
     # probs a good idea to check if the names are as you exepect coming out of this thing
     # print("Game Over")
