@@ -133,7 +133,7 @@ class AntiAllInPlayer(Bot):
         if continue_cost > 1:
             if observation["opp_stack"] == 0:
                 self.num_shoves += 1
-        if (self.num_shoves / self.num_rounds >= 0.2 and 
+        if (self.num_rounds != 0 and self.num_shoves / self.num_rounds >= 0.2 and 
             (random.random() >= 0.1)):
             if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
                 action = RaiseAction(observation["max_raise"])
