@@ -131,7 +131,7 @@ class Player(Bot):
         # If the villain raised, adjust the probability
         if continue_cost > 1:
             if observation["opp_stack"] == 0:
-                self.num_shove += 1
+                self.num_shoves += 1
         if (self.num_shoves / self.num_rounds >= 0.2 and 
             (random.random() >= 0.1)):
             if equity > 0.8 and (RaiseAction in observation["legal_actions"]):
