@@ -240,7 +240,7 @@ class Player(Bot):
                 else:
                     action = CheckAction()
             else:
-                if (self.num_raises / self.num_bets > 0.34 and 
+                if (self.num_rounds >= 15 and self.num_raises / self.num_bets > 0.34 and 
                     random.random() > 1 - equity and 
                     equity > self.bluff3 and
                     CallAction in observation["legal_actions"]):
