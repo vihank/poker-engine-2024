@@ -211,7 +211,7 @@ class Game:
         filename = './all_results.csv'
         with open(filename, 'a', newline="") as file:
             csvwriter = csv.writer(file) # 2. create a csvwriter object
-            csvwriter.writerow([self.original_players[0].bankroll, self.original_players[1].bankroll])
+            
         file.close()
 
         if self.all_logs:
