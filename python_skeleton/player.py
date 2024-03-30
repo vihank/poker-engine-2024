@@ -96,15 +96,11 @@ class Player(Bot):
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
         self.log.append("game over")
-<<<<<<< HEAD
         self.log.append("================================\n")
         self.num_turns += 1
         self.payoffs[self.cur_bot] = (self.payoffs[self.cur_bot] * self.times_chosen[self.cur_bot] + terminal_state.deltas[active]) / (self.times_chosen[self.cur_bot] + 1)
         self.times_chosen[self.cur_bot] += 1
         self.bots[self.cur_bot].handle_round_over(game_state, terminal_state, active, is_match_over)
-=======
-        self.log.append("================v1================\n")
->>>>>>> dd8a972a1188ceb55b7e9306aac012f3fb657805
 
         return self.log
 
