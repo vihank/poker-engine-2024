@@ -68,10 +68,10 @@ class Player(Bot):
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
-        self.num_turns = 0
+        self.num_turns += 1
 
         soft_rewards = np.exp(self.payoffs) / np.sum(np.exp(self.payoffs))
-        ucb = 1 + self.c * np.sqrt(np.log(self.num_turns) * np.reciprocal(self.times_chosen))
+        ucb = 1 + self.c * np.sqrt(np.log(self.num_turns) * np.reciprocal(self.times_chosen + 1e-6))
         probs = soft_rewards * self.weighting * ucb
         norm_probs = probs / np.sum(probs)
         self.cur_bot = np.random.choice(list(range(self.num_bots)), p = norm_probs)
