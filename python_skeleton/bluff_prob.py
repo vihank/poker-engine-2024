@@ -14,7 +14,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class Player(Bot):
+class BluffPlayer(Bot):
     """
     A pokerbot.
     """
@@ -174,4 +174,4 @@ class Player(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(Player(), parse_args())
+    run_bot(BluffPlayer(), parse_args())
