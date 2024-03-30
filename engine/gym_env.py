@@ -27,11 +27,17 @@ def card_to_int(card: str):
     suit = {"s": 0, "h": 1, "d": 2}[suit]
     return (suit * 10 + int(rank))
 
+def int_to_card(card: int) -> str:
+    if card == 0: return ""
+    rank = str(card % 10)
+    suit = "shd"[card // 10]
+    return rank + suit
+
 class PokerEnv(gym.Env):
     """
     Manages logging and the high-level game procedure.
     """
-    def __init__(self, num_rounds, opp_bot=None) -> None:
+    def __init__(self, num_rounds=1000, opp_bot=None) -> None:
         super().__init__()
         self.num_rounds = num_rounds
 
@@ -92,16 +98,16 @@ class PokerEnv(gym.Env):
         else:
             opp_shown_card = [0, 0]
 
-        board_cards = [card_to_int(card) for card in round_state.board]
-        padding = [0] * (2 - len(board_cards))
-        board_cards += padding
+        # board_cards = [card_to_int(card) for card in round_state.board]
+        # padding = [0] * (2 - len(board_cards))
+        # board_cards += padding
 
         obs = {
             "is_my_turn": int(round_state.button % 2 == player_num),
             "legal_actions": np.array([int(action in legal_actions) for action in [FoldAction, CallAction, CheckAction, RaiseAction]]).astype(np.int8),
             "street": round_state.street,
-            "my_cards": np.array([card_to_int(card) for card in round_state.hands[player_num]]),
-            "board_cards": np.array(board_cards),
+            "my_cards": np.array(round_state.hands[player_num]),
+            "board_cards": np.array(round_state.board),
             "my_pip": np.array(my_pip).reshape(1,),
             "opp_pip": np.array(opp_pip).reshape(1,),
             "my_stack": np.array(my_stack).reshape(1,),

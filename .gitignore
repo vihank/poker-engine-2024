@@ -179,3 +179,5 @@ pyrightconfig.json
 logs/*
 .vscode
 .code-workspace
+.ipynb
+.json
