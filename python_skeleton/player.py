@@ -221,7 +221,7 @@ class Player(Bot):
                 raise_amount = max(raise_amount, observation["min_raise"])
                 action = RaiseAction(raise_amount)
             elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                if (random.random() < self.bluff1(equity)):
+                if (random.random() < self.bluff1(equity) and RaiseAction in observation["legal_actions"]):
                     sizing = random.uniform(self.bluffsize*0.9, 
                                             self.bluffsize*1.1)
                     raise_amount = min(int(pot_size*sizing), observation["max_raise"])
@@ -231,7 +231,7 @@ class Player(Bot):
                     action = CallAction()
             elif CheckAction in observation["legal_actions"]:
                 if (random.random() > 1 - equity * self.bluff2 and 
-                    equity > self.bluff3):
+                    equity > self.bluff3 and RaiseAction in observation["legal_actions"]):
                     sizing = random.uniform(self.bluffsize*0.9, 
                                             self.bluffsize*1.1)
                     raise_amount = min(int(pot_size*sizing), observation["max_raise"])
