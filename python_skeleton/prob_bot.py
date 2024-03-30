@@ -129,7 +129,6 @@ class Player(Bot):
         if continue_cost > 1:
             equity = (equity - 0.5) / 0.5
             self.log.append(f"Adjusted equity: {equity}")
-
         if equity > 0.8 and RaiseAction in observation["legal_actions"]:
             raise_amount = min(int(pot_size*0.75), observation["max_raise"])
             raise_amount = max(raise_amount, observation["min_raise"])
