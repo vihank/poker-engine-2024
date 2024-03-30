@@ -14,7 +14,8 @@ excluded_files = set(["arnav_testing.py",
                       "all_in.py",
                       "antiallin_prob.py",
                       "prob_bot.py",
-                      "trainingbot.py"])
+                      "trainingbot.py",
+                      "trainbot.py"])
 
 def parse_args():
     parser = ArgumentParser()

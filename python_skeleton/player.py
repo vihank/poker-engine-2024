@@ -22,9 +22,25 @@ class RangePlayer10(Bot):
     Changed bluff probabilities to make this more aggressive in its bluffing
     
     """
+    def f(x):
+        bluff = 0
+        if x < 0.2:
+            bluff =  0
+        elif x < 0.4:
+            bluff =  0.2
+        elif x < 0.5:
+            bluff = 0.4 
+        elif x < 0.6:
+            bluff = 0.6
+        elif x < 0.8:
+            bluff = 0.2
+        else:
+            bluff = 0
+        return bluff
+
 
     def __init__(self,
-                 bluff1 = 0.6,
+                 bluff1 = f,
                  bluff2 = 1,
                  bluff3 = 0.1,
                  range1 = 300,
@@ -198,7 +214,7 @@ class RangePlayer10(Bot):
                 raise_amount = max(raise_amount, observation["min_raise"])
                 action = RaiseAction(raise_amount)
             elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                if (random.random() > 1-self.bluff1):
+                if (random.random() < self.bluff1(equity)):
                     sizing = random.uniform(self.bluffsize*0.9, 
                                             self.bluffsize*1.1)
                     raise_amount = min(int(pot_size*sizing), observation["max_raise"])

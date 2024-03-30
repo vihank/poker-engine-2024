@@ -3,6 +3,7 @@ Simple example pokerbot, written in Python.
 """
 
 import itertools
+import numpy as np
 import random
 import pickle
 from typing import Optional
@@ -24,7 +25,7 @@ class PastPlayer(Bot):
     """
 
     def __init__(self,
-                 bluff1 = 0.76,
+                 bluff1 = 0.75,
                  bluff2 = 1,
                  bluff3 = 0.1,
                  range1 = 300,
@@ -71,7 +72,7 @@ class PastPlayer(Bot):
         self.adjust = adjust
         self.name="pasthist"
         self.bankroll=0
-        self.bets = 0
+        self.bets = 1
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 
@@ -115,7 +116,7 @@ class PastPlayer(Bot):
         #street = previous_state.street # 0, 3, 4, or 5 representing when this round ended
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
-        self.bets = 0
+        self.bets = 1
         self.log.append("game over")
         self.log.append("================================\n")
 
@@ -189,7 +190,7 @@ class PastPlayer(Bot):
                 action = FoldAction()
         else:
             if continue_cost > 1:
-                opp_bet = 400 - observation["opp_pip"]
+                opp_bet = observation["opp_pip"]*self.bets
                 if (self.prop_raise > 0.35):
                     if (opp_bet > self.range1):
                         equity = (equity - self.adjust*self.filter1) / (1 - self.adjust*self.filter1)
@@ -220,7 +221,7 @@ class PastPlayer(Bot):
                 self.bets += 1
                 action = RaiseAction(raise_amount)
             elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                if (random.random() > 1-self.bluff1*(1/sqrt(self.bets))):
+                if (random.random() > 1-self.bluff1*(1/np.sqrt(self.bets))):
                     sizing = random.uniform(self.bluffsize*0.9, 
                                             self.bluffsize*1.1)
                     raise_amount = min(int(pot_size*sizing), observation["max_raise"])
