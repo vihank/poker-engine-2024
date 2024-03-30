@@ -22,6 +22,9 @@ class HandData():
     def add_turns(self, turns):
         self.turns = turns
 
+    def add_reward(self, reward):
+        self.reward = reward
+
 
 path = "logs/engine_log.csv"
 df = pd.read_csv(path)

@@ -5,7 +5,7 @@
 import sys
 sys.path.append('./python_skeleton')
 
-from collections import deque
+from collections import defaultdict, deque
 import os
 import csv
 from typing import Deque, List
@@ -71,6 +71,16 @@ def fixactions(action): #input type is skeleton
         return CheckAction()
     else:
         return RaiseAction(action.amount)
+    
+def actionTranslate(action):
+    if isinstance(action, FoldAction):
+        return "fold", 0
+    elif isinstance(action, CallAction):
+        return "call", 0
+    elif isinstance(action, CheckAction):
+        return "check", 0
+    else:
+        return "bets", 1
 
 
 def request_obs_translate(round_state, active):
@@ -113,6 +123,7 @@ class Game:
         self.logging = logging
         self.printing = printing
         self.ret = ret
+        self.isfirst = True
 
     def log_round_state(self, round_state: RoundState):
         """
@@ -177,22 +188,44 @@ class Game:
         self.players[0].handle_new_round(None, None, None)
         self.players[1].handle_new_round(None, None, None)
 
+        episode = HandData(isfirst = self.isfirst, hand = hands[0] if self.isfirst else hands[1], opp_hand=hands[1] if self.isfirst else hands[0])
+        actions=[]
+
         round_state = RoundState(0, 0, pips, stacks, hands, [], deck, None)
         self.new_actions = [deque(), deque()]
+        turn = defaultdict(list)
+        turn["street"] = 0
 
         while not isinstance(round_state, TerminalState):
             if self.logging: self.log_round_state(round_state)
+            if turn["street"] < round_state.street:
+                actions.append(turn)
+                turn=defaultdict(list)
+                turn["street"] = round_state.street
 
             active = round_state.button % 2
             player = self.players[active]
 
             action = fixactions(player.get_action(request_obs_translate(round_state, active)))
 
+            turn["public_cards"] = round_state.board
+            mvmt, amt= actionTranslate(action)
+            if player.name == self.original_players[0].name:    
+                turn["your_action"].append(mvmt)
+                turn["ActionAmt"].append(amt)
+            else:
+                turn["opp_action"].append(mvmt)
+                turn["opp_amount"].append(amt)
+
             action = self._validate_action(action, round_state, player.name)
             if self.logging: self.log_action(player.name, action, round_state)
 
             self.new_actions[1 - active].append(action)
             round_state = round_state.proceed(action)
+
+        actions.append(turn)
+
+        episode.add_turns(actions)
 
         board = round_state.previous_state.board
         for index, (player, delta) in enumerate(zip(self.players, round_state.deltas)):
@@ -202,6 +235,11 @@ class Game:
 
             player.handle_round_over(game_state,pRoundState, active, last_round)
             player.bankroll += delta
+
+            if player.name == self.original_players[0].name:
+                episode.add_reward(player.bankroll)
+
+        if self.ret: gameData.add_episode(episode)
 
         if self.logging: self.log_terminal_state(round_state)
 
@@ -227,6 +265,7 @@ class Game:
 
             self.run_round((self.round_num == NUM_ROUNDS), gameData)
             self.players = self.players[::-1]  # Alternate the dealer
+            self.isfirst != self.isfirst
 
         self.log.append(f"{self.original_players[0].name} Bankroll: {self.original_players[0].bankroll}")
         self.log.append(f"{self.original_players[1].name} Bankroll: {self.original_players[1].bankroll}")
