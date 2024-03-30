@@ -90,7 +90,7 @@ def request_obs_translate(round_state, active):
     return obs
 
 class Game:
-    def __init__(self, logging=False) -> None:
+    def __init__(self, logging=False, printing=False, ret=False) -> None:
         self.players: List[Bot] = []
         self.log: List[str] = [
             f"CMU Poker Bot Game - {PLAYER_1_NAME} vs {PLAYER_2_NAME}"
@@ -111,6 +111,8 @@ class Game:
         self.new_actions: List[Deque[Action]] = [deque(), deque()]
         self.round_num = 0
         self.logging = logging
+        self.printing = printing
+        self.ret = ret
 
     def log_round_state(self, round_state: RoundState):
         """
@@ -163,7 +165,7 @@ class Game:
         self.log.append(f"{self.players[0].name} Bankroll: {self.players[0].bankroll}")
         self.log.append(f"{self.players[1].name} Bankroll: {self.players[1].bankroll}")
 
-    def run_round(self, last_round: bool) -> None:
+    def run_round(self, last_round: bool, gameData) -> None:
         """
         Runs one round of poker (1 hand).
         """
@@ -186,7 +188,6 @@ class Game:
 
             action = fixactions(player.get_action(request_obs_translate(round_state, active)))
 
-
             action = self._validate_action(action, round_state, player.name)
             if self.logging: self.log_action(player.name, action, round_state)
 
@@ -208,28 +209,31 @@ class Game:
         """
         Runs one match of poker.
         """
-        print("Starting the Poker Game...")
+        gameData = GameData() if self.ret else None
+        if self.printing: print("Starting the Poker Game...")
         self.players = [
             bots[0], bots[1]
         ]
         player_names = [self.players[0].name, self.players[1].name]
 
-        print(f"Player 1: {player_names[0]}, Player 2: {player_names[1]}")
+        if self.printing: print(f"Player 1: {player_names[0]}, Player 2: {player_names[1]}")
 
-        print("Starting match...")
+        if self.printing: print("Starting match...")
         self.original_players = self.players.copy()
         for self.round_num in range(1, NUM_ROUNDS + 1):
             if self.round_num % 100 == 0:
-                print(f"Starting round {self.round_num}...")
+                if self.printing: print(f"Starting round {self.round_num}...")
             self.log.append(f"\nRound #{self.round_num}")
 
-            self.run_round((self.round_num == NUM_ROUNDS))
+            self.run_round((self.round_num == NUM_ROUNDS), gameData)
             self.players = self.players[::-1]  # Alternate the dealer
 
         self.log.append(f"{self.original_players[0].name} Bankroll: {self.original_players[0].bankroll}")
         self.log.append(f"{self.original_players[1].name} Bankroll: {self.original_players[1].bankroll}")
 
         if self.logging: self._finalize_log()
+
+        return gameData
 
     def _finalize_log(self) -> None:
         """
@@ -247,7 +251,7 @@ class Game:
         
         filename = os.path.join(LOGS_DIRECTORY, filename)
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        print(f"Writing {filename}")
+        if self.printing: print(f"Writing {filename}")
         mode = "w"
         newline = "" if is_csv else None
         with open(filename, mode, newline=newline) as file:
@@ -327,4 +331,4 @@ if __name__ == '__main__':
     game.run_match([ProbPlayer(), BluffPlayer()])
     print(game.players[0].bankroll, game.players[1].bankroll)
     # probs a good idea to check if the names are as you exepect coming out of this thing
-    print("Game Over")
+    # print("Game Over")
