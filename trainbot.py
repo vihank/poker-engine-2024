@@ -45,13 +45,14 @@ class DQN(nn.Module):
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, n_actions)
+        self.activation = nn.ReLU(n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        return self.activation(self.layer3(x))
     
 import pandas as pd
 import numpy as np
@@ -148,7 +149,7 @@ def optimize_model():
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch).gather(1, action_batch)
+    state_action_values = policy_net(state_batch).gather(0, action_batch)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -174,8 +175,6 @@ def optimize_model():
 
 if torch.cuda.is_available():
     num_episodes = 600
-else:
-    num_episodes = 50
 
 # state is init state
 # info is ??
