@@ -206,7 +206,14 @@ class Game:
 
         self.log.append(f"{self.original_players[0].name} Bankroll: {self.original_players[0].bankroll}")
         self.log.append(f"{self.original_players[1].name} Bankroll: {self.original_players[1].bankroll}")
+        
+        filename = 'all_results.csv'
+        with open(filename, 'w', newline="") as file:
+            csvwriter = csv.writer(file) # 2. create a csvwriter object
+            csvwriter.writerow([self.original_players[0].bankroll, self.original_players[1].bankroll])
 
+
+        csv.reader()
         self._finalize_log()
         add_match_entry(self.original_players[0].bankroll, self.original_players[1].bankroll)
 
