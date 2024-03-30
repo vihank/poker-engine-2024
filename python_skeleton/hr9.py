@@ -14,21 +14,27 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayer8(Bot):
+class RangePlayer9(Bot):
     """
     A pokerbot.
+
+    bluff probabilities are based off of hr8
+    Lowered ranges for first two filters while raising third range
+    Assumed better hands for ranges 1 and 2
+    Lowered filter4 to 0.2
     """
+
     def __init__(self,
                  bluff1 = 0.35,
                  bluff2 = 1,
                  bluff3 = 0.2,
-                 range1 = 350,
-                 filter1 = 0.8,
-                 range2 = 150,
-                 filter2 = 0.6,
-                 range3 = 5,
+                 range1 = 300,
+                 filter1 = 0.9,
+                 range2 = 100,
+                 filter2 = 0.7,
+                 range3 = 10,
                  filter3 = 0.5,
-                 filter4 = 0.25,
+                 filter4 = 0.2,
                  allin = 0.2,
                  allin2 = 0.1,
                  size = 0.75,
@@ -219,4 +225,4 @@ class RangePlayer8(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayer8(), parse_args())
+    run_bot(RangePlayer9(), parse_args())
