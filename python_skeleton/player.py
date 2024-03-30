@@ -6,16 +6,6 @@ import itertools
 import random
 import pickle
 from typing import Optional
-import numpy as np
-
-from antiallin_prob import AntiAllInPlayer
-from bluff_prob import BluffPlayer
-from handranging_bluff0 import RangePlayer1
-from handranging_bluff1 import RangePlayer2
-from handranging_bluff2 import RangePlayer3
-from hr9 import RangePlayer9
-from hr8 import RangePlayer8
-from hr5 import RangePlayer5
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -24,11 +14,31 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class Player(Bot):
+class RangePlayer10(Bot):
     """
     A pokerbot.
+
+    bluff probabilities are based off of hr9
+    Changed bluff probabilities to make this more aggressive in its bluffing
+    
     """
-    def __init__(self) -> None:
+
+    def __init__(self,
+                 bluff1 = 1,
+                 bluff2 = 1,
+                 bluff3 = 0.1,
+                 range1 = 300,
+                 filter1 = 0.9,
+                 range2 = 100,
+                 filter2 = 0.7,
+                 range3 = 10,
+                 filter3 = 0.5,
+                 filter4 = 0.2,
+                 allin = 0.2,
+                 allin2 = 0.1,
+                 size = 0.75,
+                 bluffsize = 0.35
+                 ) -> None:
         """
         Called when a new game starts. Called exactly once.
 
@@ -38,25 +48,25 @@ class Player(Bot):
         Returns:
         Nothing.
         """
-        #np.array([0.01, 0.1, 0.05, 0.2, 0.4, 0.4, 0.9])
-        self.weighting = np.array([0,0,0,0,0.1,0.1,0.9])
-        self.c = 0.5
-
-        self.bots = {0: AntiAllInPlayer(), 
-                     1: RangePlayer1(), 
-                     2: RangePlayer2(),
-                     3: RangePlayer3(),
-                     4: RangePlayer5(),
-                     5: RangePlayer8(), 
-                     6: RangePlayer9()}
-
-        self.cur_bot = 0
-        self.num_bots = len(self.bots)
-
-        self.times_chosen = np.zeros(self.num_bots)
-        self.payoffs = np.zeros(self.num_bots)
-        self.num_turns = 0
-        print("initialized")
+        self.num_shoves = 0
+        self.num_rounds = 0
+        self.log = []
+        self.bluff1 = bluff1
+        self.bluff2 = bluff2
+        self.bluff3 = bluff3
+        self.size = size
+        self.bluffsize = bluffsize
+        self.range1 = range1
+        self.range2 = range2
+        self.range3 = range3
+        self.filter1 = filter1
+        self.filter2 = filter2
+        self.filter3 = filter3
+        self.filter4 = filter4
+        self.allin = allin
+        self.allin2 = allin2
+        self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
+        pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:
         """
@@ -75,18 +85,11 @@ class Player(Bot):
         #round_num = game_state.round_num # the round number from 1 to NUM_ROUNDS
         #my_cards = round_state.hands[active] # your cards
         #big_blind = bool(active) # True if you are the big blind
+        self.num_rounds += 1
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
-        self.num_turns += 1
-
-        soft_rewards = np.exp(self.payoffs) / np.sum(np.exp(self.payoffs))
-        ucb = 1 + self.c * np.sqrt(np.log(self.num_turns) * np.reciprocal(self.times_chosen + 1e-6))
-        probs = soft_rewards * self.weighting * ucb
-        norm_probs = probs / np.sum(probs)
-        self.cur_bot = np.random.choice(list(range(self.num_bots)), p = norm_probs)
-
-        self.bots[self.cur_bot].handle_new_round(game_state, round_state, active)
+        pass
 
     def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int, is_match_over: bool) -> Optional[str]:
         """
@@ -106,11 +109,8 @@ class Player(Bot):
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
         self.log.append("game over")
-        self.log.append("===============================\n")
-        self.payoffs[self.cur_bot] = (self.payoffs[self.cur_bot] * self.times_chosen[self.cur_bot] + terminal_state.deltas[active]) / (self.times_chosen[self.cur_bot] + 1)
-        self.times_chosen[self.cur_bot] += 1
-        self.bots[self.cur_bot].handle_round_over(game_state, terminal_state, active, is_match_over)
-        self.log.append(f"bot used: {self.cur_bot}, freq: {self.times_chosen[self.cur_bot]}")
+        self.log.append("================================\n")
+
         return self.log
 
     def get_action(self, observation: dict) -> Action:
@@ -137,7 +137,91 @@ class Player(Bot):
         Returns:
             Action: The action you want to take.
         """
-        return self.bots[self.cur_bot].get_action(observation)
+        my_contribution = STARTING_STACK - observation["my_stack"] # the number of chips you have contributed to the pot
+        opp_contribution = STARTING_STACK - observation["opp_stack"] # the number of chips your opponent has contributed to the pot
+        pot_size = my_contribution + opp_contribution # the number of chips in the pot
+        continue_cost = observation["opp_pip"] - observation["my_pip"] # the number of chips needed to stay in the pot
+
+        self.log.append("My cards: " + str(observation["my_cards"]))
+        self.log.append("Board cards: " + str(observation["board_cards"]))
+        self.log.append("My stack: " + str(observation["my_stack"]))
+        self.log.append("My contribution: " + str(my_contribution))
+        self.log.append("My bankroll: " + str(observation["my_bankroll"]))
+
+        # Original probability calculation
+        # leftover_cards = [f"{rank}{suit}" for rank in "123456789" for suit in "shd" if f"{rank}{suit}" not in observation["my_cards"] + observation["board_cards"]]
+        # possible_card_comb = list(itertools.permutations(leftover_cards, 4 - len(observation["board_cards"])))
+        # possible_card_comb = [observation["board_cards"] + list(c) for c in possible_card_comb]
+        # result = map(lambda x: evaluate(observation["my_cards"], x[:2]) > evaluate(x[:2], x[2:]), possible_card_comb)
+        # prob = sum(result) / len(possible_card_comb)
+
+        # Use pre-computed probability calculation
+        equity = self.pre_computed_probs['_'.join(sorted(observation["my_cards"])) + '_' + '_'.join(sorted(observation["board_cards"]))]
+        pot_odds = continue_cost / (pot_size + continue_cost)
+
+        self.log.append(f"Equity: {equity}")
+        self.log.append(f"Pot odds: {pot_odds}")
+
+        # If the villain raised, adjust the probability
+        if continue_cost > 1:
+            if observation["opp_stack"] == 0:
+                self.num_shoves += 1
+        if (self.num_shoves / self.num_rounds >= self.allin and 
+            (random.random() >= self.allin2) and
+            self.num_rounds >= 5):
+            if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
+                action = RaiseAction(observation["max_raise"])
+            elif equity > 0.51 and (CallAction in observation["legal_actions"]):
+                action = CallAction()
+            elif CheckAction in observation["legal_actions"]:
+                action = CheckAction()
+            else:
+                action = FoldAction()
+        else:
+            if continue_cost > 1:
+                opp_bet = observation["opp_pip"]
+                if (opp_bet > self.range1):
+                    equity = (equity - self.filter1) / (1 - self.filter1)
+                elif (opp_bet > self.range2):
+                    equity = (equity - self.filter2) / (1 - self.filter2)
+                elif (opp_bet > self.range3):
+                    equity = (equity - self.filter3) / (1 - self.filter3)
+                else:
+                    equity = (equity - self.filter4) / (1 - self.filter4)
+                self.log.append(f"Adjusted equity: {equity}")
+            if equity > 0.9 and RaiseAction in observation["legal_actions"]:
+                action = RaiseAction(observation["max_raise"])
+            elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
+                sizing = random.uniform(self.size*0.9, 
+                                        self.size*1.1)
+                raise_amount = min(int(pot_size*sizing), observation["max_raise"])
+                raise_amount = max(raise_amount, observation["min_raise"])
+                action = RaiseAction(raise_amount)
+            elif CallAction in observation["legal_actions"] and equity >= pot_odds:
+                if (random.random() > 1-self.bluff1):
+                    sizing = random.uniform(self.bluffsize*0.9, 
+                                            self.bluffsize*1.1)
+                    raise_amount = min(int(pot_size*sizing), observation["max_raise"])
+                    raise_amount = max(raise_amount, observation["min_raise"])
+                    action = RaiseAction(raise_amount)
+                else:
+                    action = CallAction()
+            elif CheckAction in observation["legal_actions"]:
+                if (random.random() > 1 - equity * self.bluff2 and 
+                    equity > self.bluff3):
+                    sizing = random.uniform(self.bluffsize*0.9, 
+                                            self.bluffsize*1.1)
+                    raise_amount = min(int(pot_size*sizing), observation["max_raise"])
+                    raise_amount = max(raise_amount, observation["min_raise"])
+                    action = RaiseAction(raise_amount)
+                else:
+                    action = CheckAction()
+            else:
+                action = FoldAction()
+
+        self.log.append(str(action) + "\n")
+
+        return action
 
 if __name__ == '__main__':
-    run_bot(Player(), parse_args())
+    run_bot(RangePlayer10(), parse_args())
