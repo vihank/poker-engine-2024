@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
 
+from engine.roundstate import RoundState
 from python_skeleton.bluff_prob import BluffPlayer
 from python_skeleton.trainingbot import TrainingPlayer
 from engine.actions import TerminalState
@@ -115,7 +116,6 @@ def select_action(state):
 episode_durations = []
 
 def optimize_model():
-    print("Optimizing")
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
@@ -128,11 +128,22 @@ def optimize_model():
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
-    state_batch = torch.cat(batch.state)
-    action_batch = torch.cat(batch.action)
-    reward_batch = torch.cat(batch.reward)
+    new = []
+    for s in batch.next_state:
+      if isinstance(s, RoundState):
+        new.append(torch.tensor(GameData(s.street, s.stacks, [s.hands[0], s.board]).state, dtype=torch.float32, device=device).unsqueeze(0))
+      elif isinstance(s, TerminalState):
+        payoff = s[0]
+        h = s[1].hands[0]
+        b = s[1].board
+        new.append(torch.tensor(GameData(3, payoff, [h, b]).state, dtype=torch.float32, device=device).unsqueeze(0))
+      else:
+        new.append(s)
+    non_final_next_states = torch.cat([s for s in new if s is not None])
+
+    state_batch = torch.cat(batch.state).to(device)
+    action_batch = torch.cat(batch.action).to(device)
+    reward_batch = torch.cat(batch.reward).to(device)
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
@@ -181,8 +192,8 @@ for i_episode in range(num_episodes):
         else:
           state_data = GameData(state_round.street, state_round.stacks, [state_round.hands[0], state_round.board]).state
           state = torch.tensor(state_data, dtype=torch.float32, device=device).unsqueeze(0)
-          action = select_action(state).item()
-          new_state = game.run_turn(state_round, action)
+          action = select_action(state)
+          new_state = game.run_turn(state_round, action.to(device).item())
         if isinstance(new_state, int):
           next_state = None
           reward = torch.tensor([new_state], device = device)
@@ -213,4 +224,4 @@ for i_episode in range(num_episodes):
     if len(past_10) > 10:
       past_10 = past_10[1:]
 
-print(sum(past_10) / 10)
+    print(sum(past_10) / 10)
