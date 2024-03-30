@@ -14,11 +14,26 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayer2(Bot):
+class RangePlayerK(Bot):
     """
     A pokerbot.
     """
-    def __init__(self) -> None:
+    def __init__(self,
+                 bluff1 = 0.35,
+                 bluff2 = 1,
+                 bluff3 = 0.2,
+                 range1 = 350,
+                 filter1 = 0.8,
+                 range2 = 150,
+                 filter2 = 0.6,
+                 range3 = 5,
+                 filter3 = 0.5,
+                 filter4 = 0.25,
+                 allin = 0.2,
+                 allin2 = 0.1,
+                 size = 0.75,
+                 bluffsize = 0.35
+                 ) -> None:
         """
         Called when a new game starts. Called exactly once.
 
@@ -31,6 +46,20 @@ class RangePlayer2(Bot):
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []
+        self.bluff1 = bluff1
+        self.bluff2 = bluff2
+        self.bluff3 = bluff3
+        self.size = size
+        self.bluffsize = bluffsize
+        self.range1 = range1
+        self.range2 = range2
+        self.range3 = range3
+        self.filter1 = filter1
+        self.filter2 = filter2
+        self.filter3 = filter3
+        self.filter4 = filter4
+        self.allin = allin
+        self.allin2 = allin2
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 
@@ -132,8 +161,8 @@ class RangePlayer2(Bot):
         if continue_cost > 1:
             if observation["opp_stack"] == 0:
                 self.num_shoves += 1
-        if (self.num_rounds != 0 and self.num_shoves / self.num_rounds >= 0.2 and 
-            (random.random() >= 0.1) and
+        if (self.num_shoves / self.num_rounds >= self.allin and 
+            (random.random() >= self.allin2) and
             self.num_rounds >= 5):
             if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
                 action = RaiseAction(observation["max_raise"])
@@ -146,29 +175,38 @@ class RangePlayer2(Bot):
         else:
             if continue_cost > 1:
                 opp_bet = observation["opp_pip"]
-                if (opp_bet > 350):
-                    equity = (equity - 0.9) / (1 - 0.9)
-                elif (opp_bet > 15):
-                    equity = (equity - 0.7) / (1 - 0.7)
+                if (opp_bet > self.range1):
+                    equity = (equity - self.filter1) / (1 - self.filter1)
+                elif (opp_bet > self.range2):
+                    equity = (equity - self.filter2) / (1 - self.filter2)
+                elif (opp_bet > self.range3):
+                    equity = (equity - self.filter3) / (1 - self.filter3)
                 else:
-                    equity = (equity - 0.5) / (1 - 0.5)
+                    equity = (equity - self.filter4) / (1 - self.filter4)
                 self.log.append(f"Adjusted equity: {equity}")
             if equity > 0.9 and RaiseAction in observation["legal_actions"]:
                 action = RaiseAction(observation["max_raise"])
             elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
-                raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+                sizing = random.uniform(self.size*0.9, 
+                                        self.size*1.1)
+                raise_amount = min(int(pot_size*sizing), observation["max_raise"])
                 raise_amount = max(raise_amount, observation["min_raise"])
                 action = RaiseAction(raise_amount)
             elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                if (random.random() > 0.9):
-                    raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+                if (random.random() > 1-self.bluff1):
+                    sizing = random.uniform(self.bluffsize*0.9, 
+                                            self.bluffsize*1.1)
+                    raise_amount = min(int(pot_size*sizing), observation["max_raise"])
                     raise_amount = max(raise_amount, observation["min_raise"])
                     action = RaiseAction(raise_amount)
                 else:
                     action = CallAction()
             elif CheckAction in observation["legal_actions"]:
-                if (random.random() > 1 - equity * 1/2 and equity > 0.2):
-                    raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+                if (random.random() > 1 - equity * self.bluff2 and 
+                    equity > self.bluff3):
+                    sizing = random.uniform(self.bluffsize*0.9, 
+                                            self.bluffsize*1.1)
+                    raise_amount = min(int(pot_size*sizing), observation["max_raise"])
                     raise_amount = max(raise_amount, observation["min_raise"])
                     action = RaiseAction(raise_amount)
                 else:
@@ -181,4 +219,4 @@ class RangePlayer2(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayer2(), parse_args())
+    run_bot(RangePlayerK(), parse_args())

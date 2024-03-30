@@ -6,7 +6,14 @@ import csv
 
 from engine.engine import Game
 
-excluded_files = set(["arnav_testing.py", "csv_scraper.py", "rl_bot.py"])
+excluded_files = set(["arnav_testing.py", 
+                      "csv_scraper.py", 
+                      "rl_bot.py",
+                      "bluff_prob.py",
+                      "prob_bot.py",
+                      "all_in.py",
+                      "antiallin_prob.py",
+                      "prob_bot.py"])
 
 def parse_args():
     parser = ArgumentParser()
