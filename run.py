@@ -28,10 +28,10 @@ if __name__ == "__main__":
         game_engine_process.join()
     else:
         player1_process = subprocess.Popen(
-            ["python", "python_skeleton/player.py", "--port", "50051"]
+            ["python", "python_skeleton/all_in.py", "--port", "50051"]
         )
         player2_process = subprocess.Popen(
-            ["python", "python_skeleton/prob_bot.py", "--port", "50052"]
+            ["python", "python_skeleton/trainingbot.py", "--port", "50052"]
         )
         game_engine_process = Process(target=run_game_engine)
         game_engine_process.start()

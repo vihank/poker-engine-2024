@@ -6,6 +6,10 @@ import itertools
 import random
 import pickle
 from typing import Optional
+import torch.nn as nn
+import torch.nn.functional as F
+import torch
+import numpy as np
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -13,6 +17,98 @@ from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
 from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
+
+class DQN(nn.Module):
+
+    def __init__(self, n_observations, n_actions):
+        super(DQN, self).__init__()
+        self.layer1 = nn.Linear(n_observations, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, n_actions)
+        self.activation = nn.ReLU(n_actions)
+
+    # Called with either one element to determine next action, or a batch
+    # during optimization. Returns tensor([[left0exp,right0exp]...]).
+    def forward(self, x):
+        x = F.relu(self.layer1(x))
+        x = F.relu(self.layer2(x))
+        return self.activation(self.layer3(x))
+class GameData():
+    def __init__(self, street, pips, hand):
+        self.state = (street, 400 - pips[0], 400 - pips[1], *self.extract_hand(hand), evaluate(hand[0], hand[1]) / 1000 )
+
+    def cur_in(self, player):
+      if player:
+        return self.player_in
+      return self.player_opp
+
+    def frequent_card_count(self, hand):
+      ranks = [int(card[0]) for card in hand]
+      counts = [ranks.count(x) for x in ranks]
+      return max(counts)
+
+    def max_straight_count(self, hand):
+      
+      ranks = [int(card[0]) for card in hand]
+      ranks.sort()
+      max_streak = 0
+      cur = ranks[0] - 1
+      cur_streak = 0
+      for i in range(len(ranks)):
+        if ranks[i] == cur + 1:
+          cur_streak += 1
+        else:
+          cur_streak = 1
+        max_streak = max(max_streak, cur_streak)
+        cur = ranks[i]
+
+      return max_streak
+
+    def frequent_suit_count(self, hand):
+      ranks = [card[1] for card in hand]
+      counts = [ranks.count(x) for x in ranks]
+      return max(counts)
+
+    def max_card(self, hand):
+        s = [int(h[0]) for h in hand]
+        return max(s)
+
+    def extract_hand(self, hand):
+        hand = hand[0] + hand[1]
+
+        return (self.max_card(hand), self.frequent_card_count(hand), self.frequent_suit_count(hand), self.max_straight_count(hand))
+
+    def map_action(self, action, amount, player):
+        if action == "fold":
+          return 0
+        elif action == "check":
+          return 1
+        elif action == "call":
+          return 2
+        if player:
+          self.player_in += amount
+        else:
+          if amount != "NA":
+            self.player_opp += amount
+          else:
+            return 0
+        if amount < 5:
+          return 3
+        elif amount < 25:
+          return 4
+        elif amount < 125:
+          return 5
+        return 6
+
+class HandData():
+    __allowed = ("isfirst", "reward", "hand", "opp_hand", "turns", "bankroll")
+    def __init__(self, **kwarg):
+        for k, v in kwarg.items():
+            assert(k in self.__class__.__allowed)
+            setattr(self, k, v)
+
+    def add_turns(self, turns):
+        self.turns = turns
 
 class TrainingPlayer(Bot):
     """
@@ -33,6 +129,9 @@ class TrainingPlayer(Bot):
         self.num_rounds = 0
         self.log = []
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
+        self.model = torch.load("python_skeleton/model.pt", weights_only=False, map_location=torch.device('cpu'))
+        self.name = "Training Player"
+        self.bankroll=0
         pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:
@@ -80,7 +179,7 @@ class TrainingPlayer(Bot):
 
         return self.log
 
-    def get_action(self, tanay_action) -> Action:
+    def get_action(self, observation) -> Action:
         """
         Where the magic happens - your code should implement this function.
         Called any time the engine needs an action from your bot.
@@ -104,33 +203,13 @@ class TrainingPlayer(Bot):
         Returns:
             Action: The action you want to take.
         """
-        my_contribution = STARTING_STACK - observation["my_stack"] # the number of chips you have contributed to the pot
-        opp_contribution = STARTING_STACK - observation["opp_stack"] # the number of chips your opponent has contributed to the pot
-        pot_size = my_contribution + opp_contribution # the number of chips in the pot
-        continue_cost = observation["opp_pip"] - observation["my_pip"] # the number of chips needed to stay in the pot
 
-        self.log.append("My cards: " + str(observation["my_cards"]))
-        self.log.append("Board cards: " + str(observation["board_cards"]))
-        self.log.append("My stack: " + str(observation["my_stack"]))
-        self.log.append("My contribution: " + str(my_contribution))
-        self.log.append("My bankroll: " + str(observation["my_bankroll"]))
-
-        # Original probability calculation
-        # leftover_cards = [f"{rank}{suit}" for rank in "123456789" for suit in "shd" if f"{rank}{suit}" not in observation["my_cards"] + observation["board_cards"]]
-        # possible_card_comb = list(itertools.permutations(leftover_cards, 4 - len(observation["board_cards"])))
-        # possible_card_comb = [observation["board_cards"] + list(c) for c in possible_card_comb]
-        # result = map(lambda x: evaluate(observation["my_cards"], x[:2]) > evaluate(x[:2], x[2:]), possible_card_comb)
-        # prob = sum(result) / len(possible_card_comb)
-
-        # Use pre-computed probability calculation
-        equity = self.pre_computed_probs['_'.join(sorted(observation["my_cards"])) + '_' + '_'.join(sorted(observation["board_cards"]))]
-        pot_odds = continue_cost / (pot_size + continue_cost)
-
-        self.log.append(f"Equity: {equity}")
-        self.log.append(f"Pot odds: {pot_odds}")
-
-        trainRes = None
-
+        inputs = GameData(observation["street"], [observation["my_pip"], observation["opp_pip"]], [observation["my_stack"], observation["opp_stack"]], [observation["my_cards"], observation["board_cards"]])
+        print(inputs)
+        state = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0) 
+        trainRes = np.argmax(self.model(state))
+        print(trainRes)
+        
         if trainRes == 6:
             self.log.append(f"max raising to {observation["max_raise"]}")
             action = RaiseAction(observation["max_raise"])
@@ -155,7 +234,7 @@ class TrainingPlayer(Bot):
         else:
             self.log.append("fold actioning")
             action = FoldAction()
-
+        assert(False)
         return action
 
 if __name__ == '__main__':

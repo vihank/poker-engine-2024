@@ -31,6 +31,12 @@ class HandData():
     def __repr__(self):
         return f"IsFirst: {self.isfirst}, Reward: {self.reward}, Hand: {self.hand}, Opponent Hand: {self.opp_hand}, Turns: {self.turns}"
 
+def observation_to_hand_data(observation):
+    
+    info = HandData(hand=observation["my_cards"], opp_hand=observation["opp_cards"], street=observation["street"], board=observation["board_cards"])
+
+    return info
+
 
 path = "logs/engine_log.csv"
 df = pd.read_csv(path)

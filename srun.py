@@ -16,6 +16,7 @@ from python_skeleton.all_in import AllInPlayer
 from python_skeleton.past_hist import PastPlayer
 from python_skeleton.aggressive_prob_bot import ProbPlayer
 from python_skeleton.player1 import Player
+from python_skeleton.trainingbot import TrainingPlayer, DQN
 from python_skeleton.hr1 import RangePlayer1
 from python_skeleton.hr2 import RangePlayer2
 from python_skeleton.hr3 import RangePlayer3
@@ -227,6 +228,7 @@ class Game:
             if player.name == self.original_players[0].name:    
                 turn["your_action"].append(mvmt)
                 turn["ActionAmt"].append(amt)
+                if self.ret: yield turn
             else:
                 turn["opp_action"].append(mvmt)
                 turn["opp_amount"].append(amt)
@@ -260,7 +262,6 @@ class Game:
             self.log.append(f"{self.original_players[1].name} numraise something: {num_raise[1]}")
             episode.add_num_raise(num_raise)
 
-        if self.ret: return episode
 
 
     def run_match(self, bots):
@@ -387,17 +388,7 @@ class Game:
 
 if __name__ == '__main__':
     game = Game(logging=True, ret=True)
-    for strat in [Player(),
-                  RangePlayer1(),
-                  RangePlayer2(),
-                  RangePlayer3(),
-                  RangePlayer4(),
-                  RangePlayer5(),
-                  RangePlayer6(),
-                  RangePlayer7(),
-                  RangePlayer8(),
-                  RangePlayer9(),
-                  RangePlayer10()]:
-        print(f"{list(game.run_match([ProbPlayer(), strat]))[-1].prop_raise} against {strat.name}")
+    for strat in [BluffPlayer()]:
+        print(f"{list(game.run_match([TrainingPlayer(), strat]))[-1].reward} against {strat.name}")
     # probs a good idea to check if the names are as you exepect coming out of this thing
     # print("Game Over")
