@@ -13,8 +13,8 @@ import sqlalchemy
 # PARAMETERS TO CONTROL THE BEHAVIOR OF THE GAME ENGINE
 
 # Player names
-PLAYER_1_NAME = os.getenv("PLAYER_1_NAME", "all-in-bot")
-PLAYER_2_NAME = os.getenv("PLAYER_2_NAME", "prob-bot")
+PLAYER_1_NAME = os.getenv("PLAYER_1_NAME", "player-bot")
+PLAYER_2_NAME = os.getenv("PLAYER_2_NAME", "bluff-prob-bot")
 
 # DNS names for player bots, retrieved from environment variables
 PLAYER_1_DNS = os.getenv("PLAYER_1_DNS", "localhost:50051")
