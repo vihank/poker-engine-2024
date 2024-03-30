@@ -3,7 +3,6 @@ Simple example pokerbot, written in Python.
 """
 
 import itertools
-import random
 import pickle
 from typing import Optional
 
@@ -18,6 +17,7 @@ class Player(Bot):
     """
     A pokerbot.
     """
+
     def __init__(self) -> None:
         """
         Called when a new game starts. Called exactly once.
@@ -28,8 +28,6 @@ class Player(Bot):
         Returns:
         Nothing.
         """
-        self.num_shoves = 0
-        self.num_rounds = 0
         self.log = []
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
@@ -51,7 +49,6 @@ class Player(Bot):
         #round_num = game_state.round_num # the round number from 1 to NUM_ROUNDS
         #my_cards = round_state.hands[active] # your cards
         #big_blind = bool(active) # True if you are the big blind
-        self.num_rounds += 1
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
@@ -75,7 +72,7 @@ class Player(Bot):
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
         self.log.append("game over")
-        self.log.append("================v1================\n")
+        self.log.append("================================\n")
 
         return self.log
 
@@ -132,31 +129,16 @@ class Player(Bot):
         if continue_cost > 1:
             equity = (equity - 0.5) / 0.5
             self.log.append(f"Adjusted equity: {equity}")
-            if observation["opp_stack"] == 0:
-                self.num_shove += 1
-        if (self.num_shoves / self.num_rounds >= 0.2 and 
-            (random.random() >= 0.1)):
-            if equity > 0.6 and RaiseAction in observation["legal_actions"]:
-                action = RaiseAction(observation["max_raise"])
-            elif equity > 0.6 and CallAction in observation["legal_actions"]:
-                action = CallAction()
-            elif CheckAction in observation["legal_actions"]:
-                action = CheckAction()
-            else:
-                action = FoldAction()
+        if equity > 0.8 and RaiseAction in observation["legal_actions"]:
+            raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+            raise_amount = max(raise_amount, observation["min_raise"])
+            action = RaiseAction(raise_amount)
+        elif CallAction in observation["legal_actions"] and equity >= pot_odds:
+            action = CallAction()
+        elif CheckAction in observation["legal_actions"]:
+            action = CheckAction()
         else:
-            if equity > 0.9 and RaiseAction in observation["legal_actions"]:
-                action = RaiseAction(observation["max_raise"])
-            elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
-                raise_amount = min(int(pot_size*0.75), observation["max_raise"])
-                raise_amount = max(raise_amount, observation["min_raise"])
-                action = RaiseAction(raise_amount)
-            elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                action = CallAction()
-            elif CheckAction in observation["legal_actions"]:
-                action = CheckAction()
-            else:
-                action = FoldAction()
+            action = FoldAction()
 
         self.log.append(str(action) + "\n")
 
