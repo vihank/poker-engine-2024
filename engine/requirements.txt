@@ -33,3 +33,5 @@ sqlalchemy==2.0.29
 typing-extensions==4.10.0
 urllib3==2.2.1
 yarl==1.9.4
+torchrl=0.3.1
+tqdm=4.66.2
