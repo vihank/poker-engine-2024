@@ -43,6 +43,7 @@ class RangePlayerK(Bot):
         Returns:
         Nothing.
         """
+        self.name = "HandRange5"
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []

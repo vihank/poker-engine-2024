@@ -49,8 +49,8 @@ from skeleton.actions import (
 )
 
 class GameData():
-    def __init__(self, street, pips, hand):
-        self.state = (street, 400 - pips[0], 400 - pips[1], *self.extract_hand(hand), evaluate(hand[0], hand[1]) / 1000 )
+    def __init__(self, street, stacks, pips, hand):
+        self.state = (street, 400 - stacks[0], 400 - stacks[1], pips[0], pips[1], *self.extract_hand(hand), evaluate(hand[0], hand[1]) / 1000 )
 
     def cur_in(self, player):
       if player:

@@ -7,7 +7,17 @@ from collections import namedtuple, deque
 from itertools import count
 
 from engine.roundstate import RoundState
-from python_skeleton.bluff_prob import BluffPlayer
+
+from python_skeleton.all_in import AllInPlayer
+from python_skeleton.aggressive_prob_bot import ProbPlayer
+from python_skeleton.generic_handranger import RangePlayerK
+from python_skeleton.hr5 import RangePlayer5
+
+from python_skeleton.hr8 import RangePlayer8
+from python_skeleton.hr9 import RangePlayer9
+from python_skeleton.hr10 import RangePlayer10
+from python_skeleton.player import RangePlayer11
+
 from python_skeleton.trainingbot import TrainingPlayer
 from engine.actions import TerminalState
 from trun import GameData
@@ -61,8 +71,15 @@ from python_skeleton.skeleton.evaluate import evaluate
 
 
 
-game = Game()
-game.run_match([TrainingPlayer(), BluffPlayer()])
+games = [Game() for i in range(8)]
+games[0].run_match([TrainingPlayer(), AllInPlayer()])
+games[1].run_match([TrainingPlayer(), ProbPlayer()])
+games[2].run_match([TrainingPlayer(), RangePlayer5()])
+games[3].run_match([TrainingPlayer(), RangePlayerK()])
+games[4].run_match([TrainingPlayer(), RangePlayer8()])
+games[5].run_match([TrainingPlayer(), RangePlayer9()])
+games[6].run_match([TrainingPlayer(), RangePlayer10()])
+games[7].run_match([TrainingPlayer(), RangePlayer11()])
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -80,7 +97,7 @@ TAU = 0.005
 LR = 1e-4
 
 ACTIONS = ["Fold", "Check", "Call", "Raise0", "Raise1", "Raise2", "Raise3",]
-OBSERVATIONS = ["STREET", "OUR_IN", "THEIR_IN", "MAX_CARD", "COMMON_RANK", "COMMON_SUIT", "MAX_STRAIGHT", "EQUITY"]
+OBSERVATIONS = ["STREET", "OUR_IN", "THEIR_IN", "OUR_PIP", "OUR_PIP", "MAX_CARD", "COMMON_RANK", "COMMON_SUIT", "MAX_STRAIGHT", "EQUITY"]
 # Get number of actions from gym action space
 n_actions = len(ACTIONS)
 # Get the number of state observations
@@ -93,7 +110,7 @@ target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
 memory = ReplayMemory(10000)
 
-action_probs = torch.ones(n_observations) # TODO: Fill in
+action_probs = torch.ones(n_observations) / n_observations # TODO: Fill in
 
 steps_done = 0
 
@@ -132,12 +149,12 @@ def optimize_model():
     new = []
     for s in batch.next_state:
       if isinstance(s, RoundState):
-        new.append(torch.tensor(GameData(s.street, s.stacks, [s.hands[0], s.board]).state, dtype=torch.float32, device=device).unsqueeze(0))
+        new.append(torch.tensor(GameData(s.street, s.stacks, s.pips, [s.hands[0], s.board]).state, dtype=torch.float32, device=device).unsqueeze(0))
       elif isinstance(s, TerminalState):
         payoff = s[0]
         h = s[1].hands[0]
         b = s[1].board
-        new.append(torch.tensor(GameData(3, payoff, [h, b]).state, dtype=torch.float32, device=device).unsqueeze(0))
+        new.append(torch.tensor(GameData(3, payoff, payoff, [h, b]).state, dtype=torch.float32, device=device).unsqueeze(0))
       else:
         new.append(s)
     non_final_next_states = torch.cat([s for s in new if s is not None])
@@ -174,53 +191,63 @@ def optimize_model():
     optimizer.step()
 
 if torch.cuda.is_available():
-    num_episodes = 600
+    num_episodes = 1000
 
 # state is init state
 # info is ??
 
 past_10 = []
+tot = 0
 
-for i_episode in range(num_episodes):
-    # print(games.rounds[i_episode]["s"])
-    state_round = game.run_round(False)
-    while state_round is not None:
-        if isinstance(state_round, TerminalState):
-          next_state = None
-          reward = torch.tensor([state_round[0][0]], device = device)
-        else:
-          state_data = GameData(state_round.street, state_round.stacks, [state_round.hands[0], state_round.board]).state
-          state = torch.tensor(state_data, dtype=torch.float32, device=device).unsqueeze(0)
-          action = select_action(state)
-          new_state = game.run_turn(state_round, action.to(device).item())
-        if isinstance(new_state, int):
-          next_state = None
-          reward = torch.tensor([new_state], device = device)
-        elif isinstance(state_round, TerminalState):
-          next_state = None
-          reward = torch.tensor([state_round[0][0]], device = device)
-        else:
-          reward = torch.tensor([0], device=device)
-          next_state = new_state
-        # Store the transition in memory
-        memory.push(state, action, next_state, reward)
+for _ in range(3):
+  for k in range(8):
+    game = games[k]
+    for i_episode in range(num_episodes):
+        # print(games.rounds[i_episode]["s"])
+        state_round = game.run_round(False)
+        while state_round is not None:
+            if isinstance(state_round, TerminalState):
+              next_state = None
+              reward = torch.tensor([state_round[0][0]], device = device)
+            else:
+              state_data = GameData(state_round.street, state_round.stacks, state_round.pips, [state_round.hands[0], state_round.board]).state
+              state = torch.tensor(state_data, dtype=torch.float32, device=device).unsqueeze(0)
+              action = select_action(state)
+              new_state = game.run_turn(state_round, action.to(device).item())
+            if isinstance(new_state, int):
+              next_state = None
+              reward = torch.tensor([new_state], device = device)
+            elif isinstance(state_round, TerminalState):
+              next_state = None
+              reward = torch.tensor([state_round[0][0]], device = device)
+            else:
+              reward = torch.tensor([0], device=device)
+              next_state = new_state
+            # Store the transition in memory
+            memory.push(state, action, next_state, reward)
 
-        # Move to the next state
-        state_round = next_state
+            # Move to the next state
+            state_round = next_state
 
-        # Perform one step of the optimization (on the policy network)
-        optimize_model()
+            # Perform one step of the optimization (on the policy network)
+            optimize_model()
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
-        target_net.load_state_dict(target_net_state_dict)
+            # Soft update of the target network's weights
+            # θ′ ← τ θ + (1 −τ )θ′
+            target_net_state_dict = target_net.state_dict()
+            policy_net_state_dict = policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+            target_net.load_state_dict(target_net_state_dict)
 
-    past_10.append(reward)
-    if len(past_10) > 10:
-      past_10 = past_10[1:]
+        past_10.append(reward)
 
-    print(sum(past_10) / 10)
+        tot += reward
+
+        if len(past_10) > 100:
+          past_10 = past_10[1:]
+        if i_episode % 100 == 0:
+          print(sum(past_10))
+
+torch.save(policy_net, 'model.pt')
+print("Done!")

@@ -49,6 +49,8 @@ class RangePlayer9(Bot):
         Returns:
         Nothing.
         """
+        self.name = "HandRange9"
+
         self.num_shoves = 0
         self.num_rounds = 0
         self.log = []
