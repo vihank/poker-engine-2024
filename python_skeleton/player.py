@@ -14,7 +14,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayer10(Bot):
+class Player(Bot):
     """
     A pokerbot.
 
@@ -66,6 +66,9 @@ class RangePlayer10(Bot):
         """
         self.num_shoves = 0
         self.num_rounds = 0
+        self.prop_raise = 0
+        self.num_raises = 0
+        self.num_bets = 1
         self.log = []
         self.bluff1 = bluff1
         self.bluff2 = bluff2
@@ -81,6 +84,8 @@ class RangePlayer10(Bot):
         self.filter4 = filter4
         self.allin = allin
         self.allin2 = allin2
+        self.name="player"
+        self.bankroll=0
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
 
@@ -177,9 +182,11 @@ class RangePlayer10(Bot):
 
         self.log.append(f"Equity: {equity}")
         self.log.append(f"Pot odds: {pot_odds}")
-
+        
         # If the villain raised, adjust the probability
+        self.num_bets += 1
         if continue_cost > 1:
+            self.num_raises += 1
             if observation["opp_stack"] == 0:
                 self.num_shoves += 1
         if (self.num_shoves / self.num_rounds >= self.allin and 
@@ -233,11 +240,17 @@ class RangePlayer10(Bot):
                 else:
                     action = CheckAction()
             else:
-                action = FoldAction()
+                if (self.num_raises / self.num_bets > 0.34 and 
+                    random.random() > 1 - equity and 
+                    equity > self.bluff3 and
+                    CallAction in observation["legal_actions"]):
+                    action = CallAction()
+                else:
+                    action = FoldAction()
 
         self.log.append(str(action) + "\n")
 
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayer10(), parse_args())
+    run_bot(Player(), parse_args())

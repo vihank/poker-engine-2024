@@ -262,6 +262,7 @@ class Game:
 
         if self.ret: return episode
 
+
     def run_match(self, bots):
         """
         Runs one match of poker.
@@ -292,7 +293,6 @@ class Game:
 
         if self.logging: self._finalize_log()
 
-        return gameData
 
     def _finalize_log(self) -> None:
         """
