@@ -207,7 +207,7 @@ class Game:
             player = self.players[active]
 
             action = fixactions(player.get_action(request_obs_translate(round_state, active)))
-
+            
             turn["public_cards"] = round_state.board
             mvmt, amt= actionTranslate(action)
             if player.name == self.original_players[0].name:    

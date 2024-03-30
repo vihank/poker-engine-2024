@@ -6,6 +6,17 @@ import itertools
 import random
 import pickle
 from typing import Optional
+import numpy as np
+
+from antiallin_prob import AntiAllInPlayer
+from bluff_prob import BluffPlayer
+from handranging_bluff0 import RangePlayer1
+from handranging_bluff1 import RangePlayer2
+from handranging_bluff2 import RangePlayer3
+from hr10 import RangePlayer10
+from hr9 import RangePlayer9
+from hr8 import RangePlayer8
+from hr5 import RangePlayer5
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -14,11 +25,10 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class TrainingPlayer(Bot):
+class Player(Bot):
     """
     A pokerbot.
     """
-
     def __init__(self) -> None:
         """
         Called when a new game starts. Called exactly once.
@@ -29,11 +39,25 @@ class TrainingPlayer(Bot):
         Returns:
         Nothing.
         """
-        self.num_shoves = 0
-        self.num_rounds = 0
-        self.log = []
-        self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
-        pass
+        #np.array([0.01, 0.1, 0.05, 0.2, 0.4, 0.4, 0.9])
+        self.weighting = np.array([0,0,0,0,0.1,0.1,0.9])
+        self.c = 0.5
+
+        self.bots = {0: AntiAllInPlayer(), 
+                     1: RangePlayer1(), 
+                     2: RangePlayer2(),
+                     3: RangePlayer3(),
+                     4: RangePlayer5(),
+                     5: RangePlayer8(), 
+                     6: RangePlayer9()}
+
+        self.cur_bot = 0
+        self.num_bots = len(self.bots)
+
+        self.times_chosen = np.zeros(self.num_bots)
+        self.payoffs = np.zeros(self.num_bots)
+        self.num_turns = 0
+        print("initialized")
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:
         """
@@ -55,7 +79,15 @@ class TrainingPlayer(Bot):
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
-        pass
+        self.num_turns += 1
+
+        soft_rewards = np.exp(self.payoffs) / np.sum(np.exp(self.payoffs))
+        ucb = 1 + self.c * np.sqrt(np.log(self.num_turns) * np.reciprocal(self.times_chosen + 1e-6))
+        probs = soft_rewards * self.weighting * ucb
+        norm_probs = probs / np.sum(probs)
+        self.cur_bot = np.random.choice(list(range(self.num_bots)), p = norm_probs)
+
+        self.bots[self.cur_bot].handle_new_round(game_state, round_state, active)
 
     def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int, is_match_over: bool) -> Optional[str]:
         """
@@ -74,13 +106,15 @@ class TrainingPlayer(Bot):
         #street = previous_state.street # 0, 3, 4, or 5 representing when this round ended
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
-        self.num_rounds += 1
         self.log.append("game over")
-        self.log.append("================================\n")
-
+        self.log.append("===============================\n")
+        self.payoffs[self.cur_bot] = (self.payoffs[self.cur_bot] * self.times_chosen[self.cur_bot] + terminal_state.deltas[active]) / (self.times_chosen[self.cur_bot] + 1)
+        self.times_chosen[self.cur_bot] += 1
+        self.bots[self.cur_bot].handle_round_over(game_state, terminal_state, active, is_match_over)
+        self.log.append(f"bot used: {self.cur_bot}, freq: {self.times_chosen[self.cur_bot]}")
         return self.log
 
-    def get_action(self, tanay_action) -> Action:
+    def get_action(self, observation: dict) -> Action:
         """
         Where the magic happens - your code should implement this function.
         Called any time the engine needs an action from your bot.
@@ -104,59 +138,7 @@ class TrainingPlayer(Bot):
         Returns:
             Action: The action you want to take.
         """
-        my_contribution = STARTING_STACK - observation["my_stack"] # the number of chips you have contributed to the pot
-        opp_contribution = STARTING_STACK - observation["opp_stack"] # the number of chips your opponent has contributed to the pot
-        pot_size = my_contribution + opp_contribution # the number of chips in the pot
-        continue_cost = observation["opp_pip"] - observation["my_pip"] # the number of chips needed to stay in the pot
-
-        self.log.append("My cards: " + str(observation["my_cards"]))
-        self.log.append("Board cards: " + str(observation["board_cards"]))
-        self.log.append("My stack: " + str(observation["my_stack"]))
-        self.log.append("My contribution: " + str(my_contribution))
-        self.log.append("My bankroll: " + str(observation["my_bankroll"]))
-
-        # Original probability calculation
-        # leftover_cards = [f"{rank}{suit}" for rank in "123456789" for suit in "shd" if f"{rank}{suit}" not in observation["my_cards"] + observation["board_cards"]]
-        # possible_card_comb = list(itertools.permutations(leftover_cards, 4 - len(observation["board_cards"])))
-        # possible_card_comb = [observation["board_cards"] + list(c) for c in possible_card_comb]
-        # result = map(lambda x: evaluate(observation["my_cards"], x[:2]) > evaluate(x[:2], x[2:]), possible_card_comb)
-        # prob = sum(result) / len(possible_card_comb)
-
-        # Use pre-computed probability calculation
-        equity = self.pre_computed_probs['_'.join(sorted(observation["my_cards"])) + '_' + '_'.join(sorted(observation["board_cards"]))]
-        pot_odds = continue_cost / (pot_size + continue_cost)
-
-        self.log.append(f"Equity: {equity}")
-        self.log.append(f"Pot odds: {pot_odds}")
-
-        trainRes = None
-
-        if trainRes == 6:
-            self.log.append(f"max raising to {observation["max_raise"]}")
-            action = RaiseAction(observation["max_raise"])
-        elif trainRes == 5:
-            raise_amt = max(observation["max_raise"], 64)
-            self.log.append(f"raising to {raise_amt}")
-            action = RaiseAction(raise_amt)
-        elif trainRes == 4:
-            raise_amt = max(observation["min_raise"], 12)
-            self.log.append(f"raising to {raise_amt}")
-            action = RaiseAction(raise_amt)
-        elif trainRes == 3:
-            raise_amt = max(observation["min_raise"], 2)
-            self.log.append(f"raising to {raise_amt}")
-            action = RaiseAction(max(observation["min_raise"], 2))
-        elif trainRes == 2:
-            self.log.append("call actioning")
-            action= CallAction()
-        elif trainRes == 1:
-            self.log.append("Check actioning")
-            action = CheckAction()
-        else:
-            self.log.append("fold actioning")
-            action = FoldAction()
-
-        return action
+        return self.bots[self.cur_bot].get_action(observation)
 
 if __name__ == '__main__':
-    run_bot(TrainingPlayer(), parse_args())
+    run_bot(Player(), parse_args())
