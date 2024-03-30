@@ -32,6 +32,8 @@ class BluffPlayer(Bot):
         self.num_rounds = 0
         self.log = []
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
+        self.name = "BluffPlayer"
+        self.bankroll=0
         pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:

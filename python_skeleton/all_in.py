@@ -27,6 +27,8 @@ class AllInPlayer(Bot):
         Nothing.
         """
         self.log = []
+        self.name="allin"
+        self.bankroll = 0
         pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:

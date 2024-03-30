@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
-class Game():
+class GameData():
     def __init__(self):
         self.hands = []
 
@@ -12,7 +12,7 @@ class Game():
     def __repr__(self):
         return '\t'.join([x for x in self.hands])
 
-class Hand():
+class HandData():
     __allowed = ("isfirst", "reward", "hand", "opp_hand", "turns")
     def __init__(self, **kwarg):
         for k, v in kwarg.items():
@@ -23,12 +23,12 @@ class Hand():
         self.turns = turns
 
 
-path = "C:/Users/Arnav/Downloads/engine_log (1).csv"
+path = "logs/engine_log.csv"
 df = pd.read_csv(path)
-teamname = "vihank"
+teamname = "player-bot"
 rounds = list()
 yourteam = 0
-games = Game()
+games = GameData()
 
 for i in range(1,5):
     episode = dict()
@@ -50,7 +50,7 @@ for i in range(1,5):
         hand = curr.iloc[0,].loc["Team2Cards"]
         opp_hand = curr.iloc[0,].loc["Team1Cards"]
 
-    episode = Hand(isfirst=isfirst, reward=reward, hand=hand, opp_hand=opp_hand)
+    episode = HandData(isfirst=isfirst, reward=reward, hand=hand, opp_hand=opp_hand)
     actions = []
 
     for j in range(0,3,1):
@@ -70,18 +70,19 @@ for i in range(1,5):
             betting_round = temp.iloc[used:(used+2),]
             you = betting_round.loc[df["Team"] == teamname,]
             opp = betting_round.loc[-(df["Team"] == teamname),]
-            if "your_action" not in turn:
-                turn["your_action"].append(you.loc[:,"Action"].item())
-                turn["your_amount"].append(you.loc[:,"ActionAmt"].item())
-                turn["opp_action"].append(opp.loc[:,"Action"].item())
-                turn["opp_amount"].append(opp.loc[:,"ActionAmt"].item())
-            else:
-                turn["your_action"].append(you.loc[:,"Action"].item())
-                turn["your_amount"].append(you.loc[:,"ActionAmt"].item())
-                turn["opp_action"].append(opp.loc[:,"Action"].item())
-                turn["opp_amount"].append(opp.loc[:,"ActionAmt"].item())
-            used += 2
-            left = plays - used
+            if not you.empty and not opp.empty:
+                if "your_action" not in turn:
+                    turn["your_action"].append(you.loc[:,"Action"].item())
+                    turn["your_amount"].append(you.loc[:,"ActionAmt"].item())
+                    turn["opp_action"].append(opp.loc[:,"Action"].item())
+                    turn["opp_amount"].append(opp.loc[:,"ActionAmt"].item())
+                else:
+                    turn["your_action"].append(you.loc[:,"Action"].item())
+                    turn["your_amount"].append(you.loc[:,"ActionAmt"].item())
+                    turn["opp_action"].append(opp.loc[:,"Action"].item())
+                    turn["opp_amount"].append(opp.loc[:,"ActionAmt"].item())
+                used += 2
+                left = plays - used
         if (left == 1 and (fplayer == teamname)):
             betting_round = temp.iloc[-1,]
             if "your_action" not in turn:
@@ -102,4 +103,4 @@ for i in range(1,5):
 
     games.add_episode(episode)
 
-print(games)
+# print(games)

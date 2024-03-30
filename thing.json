@@ -1,21 +1,8 @@
-{'isfirst': True, 'reward': 2, 'your_hand': '4s 7d', 'opp_hand': '7h 1d', 'turns': [defaultdict(<class 'list'>,
-        {'street': 0, 'public_cards': nan, 'your_action': ['call'
-            ], 'your_amount': [nan
-            ], 'opp_action': ['check'
-            ], 'opp_amount': [nan
-            ]
-        }), defaultdict(<class 'list'>,
-        {'street': 1, 'public_cards': '1h', 'your_action': ['check'
-            ], 'your_amount': [nan
-            ], 'opp_action': ['check'
-            ], 'opp_amount': [nan
-            ]
-        }), defaultdict(<class 'list'>,
-        {'street': 2, 'public_cards': '1h 4d', 'your_action': ['check'
-            ], 'your_amount': [nan
-            ], 'opp_action': ['check'
-            ], 'opp_amount': [nan
-            ]
-        })
-    ]
+{'legal_actions': {<class 'skeleton.actions.RaiseAction'>, <class 'skeleton.actions.CallAction'>, <class 'skeleton.actions.FoldAction'>
+    }, 'street': 0, 'my_cards': ['1h', '5s'
+    ], 'board_cards': [], 'my_pip': 1, 'opp_pip': 2, 'my_stack': 399, 'opp_stack': 398, 'my_bankroll': 0, 'min_raise': 4, 'max_raise': 400
+},
+{'legal_actions': {RaiseAction(amount=_tuplegetter(0, 'Alias for field number 0')), CallAction()
+    }, 'street': 0, 'my_cards': ['2h', '5s'
+    ], 'board_cards': [], 'my_pip': 1, 'opp_pip': 2, 'my_stack': 399, 'opp_stack': 398, 'my_bankroll': 0, 'min_raise': 4, 'max_raise': 400
 }
