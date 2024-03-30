@@ -13,7 +13,9 @@ from bluff_prob import BluffPlayer
 from handranging_bluff0 import RangePlayer1
 from handranging_bluff1 import RangePlayer2
 from handranging_bluff2 import RangePlayer3
-
+from hr9 import RangePlayer9
+from hr8 import RangePlayer8
+from hr5 import RangePlayer5
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -36,11 +38,17 @@ class Player(Bot):
         Returns:
         Nothing.
         """
-        
-        self.weighting = np.array([0.03, 0.33, 0.3, 0.5])
+        #np.array([0.01, 0.1, 0.05, 0.2, 0.4, 0.4, 0.9])
+        self.weighting = np.array([0,0,0,0,0.1,0.1,0.9])
         self.c = 0.5
 
-        self.bots = {0: AntiAllInPlayer(), 1: RangePlayer1(), 2: RangePlayer2(), 3: RangePlayer3()}
+        self.bots = {0: AntiAllInPlayer(), 
+                     1: RangePlayer1(), 
+                     2: RangePlayer2(),
+                     3: RangePlayer3(),
+                     4: RangePlayer5(),
+                     5: RangePlayer8(), 
+                     6: RangePlayer9()}
 
         self.cur_bot = 0
         self.num_bots = len(self.bots)
@@ -98,7 +106,7 @@ class Player(Bot):
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
         self.log.append("game over")
-        self.log.append("=================v6==============\n")
+        self.log.append("===============================\n")
         self.payoffs[self.cur_bot] = (self.payoffs[self.cur_bot] * self.times_chosen[self.cur_bot] + terminal_state.deltas[active]) / (self.times_chosen[self.cur_bot] + 1)
         self.times_chosen[self.cur_bot] += 1
         self.bots[self.cur_bot].handle_round_over(game_state, terminal_state, active, is_match_over)
