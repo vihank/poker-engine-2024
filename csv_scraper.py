@@ -25,6 +25,9 @@ class HandData():
     def add_reward(self, reward):
         self.reward = reward
 
+    def __repr__(self):
+        return f"IsFirst: {self.isfirst}, Reward: {self.reward}, Hand: {self.hand}, Opponent Hand: {self.opp_hand}, Turns: {self.turns}"
+
 
 path = "logs/engine_log.csv"
 df = pd.read_csv(path)
@@ -33,7 +36,7 @@ rounds = list()
 yourteam = 0
 games = GameData()
 
-for i in range(1,5):
+for i in range(1,1000):
     episode = dict()
     temp = df.loc[df["Round"] == i,]
     fplayer = temp.iloc[0,].loc["Team",]

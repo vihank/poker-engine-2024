@@ -176,7 +176,7 @@ class Game:
         self.log.append(f"{self.players[0].name} Bankroll: {self.players[0].bankroll}")
         self.log.append(f"{self.players[1].name} Bankroll: {self.players[1].bankroll}")
 
-    def run_round(self, last_round: bool, gameData) -> None:
+    def run_round(self, last_round: bool, gameData):
         """
         Runs one round of poker (1 hand).
         """
@@ -239,11 +239,11 @@ class Game:
             if player.name == self.original_players[0].name:
                 episode.add_reward(player.bankroll)
 
-        if self.ret: gameData.add_episode(episode)
-
         if self.logging: self.log_terminal_state(round_state)
 
-    def run_match(self, bots) -> None:
+        if self.ret: return episode
+
+    def run_match(self, bots):
         """
         Runs one match of poker.
         """
@@ -263,7 +263,8 @@ class Game:
                 if self.printing: print(f"Starting round {self.round_num}...")
             self.log.append(f"\nRound #{self.round_num}")
 
-            self.run_round((self.round_num == NUM_ROUNDS), gameData)
+            ret = self.run_round((self.round_num == NUM_ROUNDS), gameData)
+            if self.ret: yield ret
             self.players = self.players[::-1]  # Alternate the dealer
             self.isfirst != self.isfirst
 
@@ -366,8 +367,9 @@ class Game:
 
 
 if __name__ == '__main__':
-    game = Game(logging=True)
-    game.run_match([ProbPlayer(), BluffPlayer()])
+    game = Game(logging=True, ret=True)
+    for info in game.run_match([ProbPlayer(), BluffPlayer()]):
+        print(info)
     print(game.players[0].bankroll, game.players[1].bankroll)
     # probs a good idea to check if the names are as you exepect coming out of this thing
     # print("Game Over")
