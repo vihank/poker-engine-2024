@@ -11,7 +11,7 @@ from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
 from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 
-class Player(Bot):
+class AllInPlayer(Bot):
     """
     A pokerbot.
     """
@@ -116,4 +116,4 @@ class Player(Bot):
         return CallAction()
 
 if __name__ == '__main__':
-    run_bot(Player(), parse_args())
+    run_bot(AllInPlayer(), parse_args())
