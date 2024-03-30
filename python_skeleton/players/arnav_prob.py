@@ -13,7 +13,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class ArnavPlayer(Bot):
+class Player(Bot):
     """
     A pokerbot.
     """
@@ -145,4 +145,4 @@ class ArnavPlayer(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(ArnavPlayer(), parse_args())
+    run_bot(Player(), parse_args())
