@@ -80,7 +80,7 @@ class TrainingPlayer(Bot):
 
         return self.log
 
-    def get_action(self, observation: dict) -> Action:
+    def get_action(self, tanay_action) -> Action:
         """
         Where the magic happens - your code should implement this function.
         Called any time the engine needs an action from your bot.
@@ -129,7 +129,7 @@ class TrainingPlayer(Bot):
         self.log.append(f"Equity: {equity}")
         self.log.append(f"Pot odds: {pot_odds}")
 
-        trainRes = tanayfunction
+        trainRes = None
 
         if trainRes == 6:
             self.log.append(f"max raising to {observation["max_raise"]}")
@@ -159,4 +159,4 @@ class TrainingPlayer(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(AntiAllInPlayer(), parse_args())
+    run_bot(TrainingPlayer(), parse_args())
