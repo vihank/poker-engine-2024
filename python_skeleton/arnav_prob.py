@@ -158,7 +158,7 @@ class Player(Bot):
             else:
                 action = FoldAction()
 
-            self.log.append(str(action) + "\n")
+        self.log.append(str(action) + "\n")
 
         return action
 

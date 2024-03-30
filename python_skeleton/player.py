@@ -134,31 +134,21 @@ class Player(Bot):
             self.log.append(f"Adjusted equity: {equity}")
             if observation["opp_stack"] == 0:
                 self.num_shove += 1
-        if (self.num_shoves / self.num_rounds >= 0.2 and 
-            (random.random() >= 0.1)):
-            if equity > 0.6 and RaiseAction in observation["legal_actions"]:
-                action = RaiseAction(observation["max_raise"])
-            elif equity > 0.6 and CallAction in observation["legal_actions"]:
-                action = CallAction()
-            elif CheckAction in observation["legal_actions"]:
-                action = CheckAction()
-            else:
-                action = FoldAction()
-        else:
-            if equity > 0.9 and RaiseAction in observation["legal_actions"]:
-                action = RaiseAction(observation["max_raise"])
-            elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
-                raise_amount = min(int(pot_size*0.75), observation["max_raise"])
-                raise_amount = max(raise_amount, observation["min_raise"])
-                action = RaiseAction(raise_amount)
-            elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                action = CallAction()
-            elif CheckAction in observation["legal_actions"]:
-                action = CheckAction()
-            else:
-                action = FoldAction()
 
-            self.log.append(str(action) + "\n")
+        if equity > 0.9 and RaiseAction in observation["legal_actions"]:
+            action = RaiseAction(observation["max_raise"])
+        elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
+            raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+            raise_amount = max(raise_amount, observation["min_raise"])
+            action = RaiseAction(raise_amount)
+        elif CallAction in observation["legal_actions"] and equity >= pot_odds:
+            action = CallAction()
+        elif CheckAction in observation["legal_actions"]:
+            action = CheckAction()
+        else:
+            action = FoldAction()
+
+        self.log.append(str(action) + "\n")
 
         return action
 
