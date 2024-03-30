@@ -50,6 +50,8 @@ from skeleton.actions import (
     RaiseAction as sRaiseAction,
 )
 
+from csv_scraper import GameData, HandData
+
 def actionsfix(action): # input type is engine
     if action == FoldAction:
         return sFoldAction
@@ -321,7 +323,7 @@ class Game:
 
 
 if __name__ == '__main__':
-    game = Game(log=True)
+    game = Game(logging=True)
     game.run_match([ProbPlayer(), BluffPlayer()])
     print(game.players[0].bankroll, game.players[1].bankroll)
     # probs a good idea to check if the names are as you exepect coming out of this thing
