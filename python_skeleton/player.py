@@ -3,8 +3,8 @@ Simple example pokerbot, written in Python.
 """
 
 import itertools
-import pickle
 import random
+import pickle
 from typing import Optional
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
@@ -18,7 +18,6 @@ class Player(Bot):
     """
     A pokerbot.
     """
-
     def __init__(self) -> None:
         """
         Called when a new game starts. Called exactly once.
@@ -29,6 +28,8 @@ class Player(Bot):
         Returns:
         Nothing.
         """
+        self.num_shoves = 0
+        self.num_rounds = 0
         self.log = []
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
         pass
@@ -50,6 +51,7 @@ class Player(Bot):
         #round_num = game_state.round_num # the round number from 1 to NUM_ROUNDS
         #my_cards = round_state.hands[active] # your cards
         #big_blind = bool(active) # True if you are the big blind
+        self.num_rounds += 1
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
@@ -120,19 +122,29 @@ class Player(Bot):
         # prob = sum(result) / len(possible_card_comb)
 
         # Use pre-computed probability calculation
-        if (random.random() < 0.99):
-            equity = self.pre_computed_probs['_'.join(sorted(observation["my_cards"])) + '_' + '_'.join(sorted(observation["board_cards"]))]
-            pot_odds = continue_cost / (pot_size + continue_cost)
+        equity = self.pre_computed_probs['_'.join(sorted(observation["my_cards"])) + '_' + '_'.join(sorted(observation["board_cards"]))]
+        pot_odds = continue_cost / (pot_size + continue_cost)
 
-            self.log.append(f"Equity: {equity}")
-            self.log.append(f"Pot odds: {pot_odds}")
+        self.log.append(f"Equity: {equity}")
+        self.log.append(f"Pot odds: {pot_odds}")
 
-            # If the villain raised, adjust the probability
-            if continue_cost > 1:
-                equity = (equity - 0.5) / 0.5
-                self.log.append(f"Adjusted equity: {equity}")
-
-
+        # If the villain raised, adjust the probability
+        if continue_cost > 1:
+            equity = (equity - 0.5) / 0.5
+            self.log.append(f"Adjusted equity: {equity}")
+            if observation["opp_stack"] == 0:
+                self.num_shove += 1
+        if (self.num_shoves / self.num_rounds >= 0.2 and 
+            (random.random() >= 0.1)):
+            if equity > 0.6 and RaiseAction in observation["legal_actions"]:
+                action = RaiseAction(observation["max_raise"])
+            elif equity > 0.6 and CallAction in observation["legal_actions"]:
+                action = CallAction()
+            elif CheckAction in observation["legal_actions"]:
+                action = CheckAction()
+            else:
+                action = FoldAction()
+        else:
             if equity > 0.9 and RaiseAction in observation["legal_actions"]:
                 action = RaiseAction(observation["max_raise"])
             elif equity > 0.8 and RaiseAction in observation["legal_actions"]:
@@ -148,16 +160,7 @@ class Player(Bot):
 
             self.log.append(str(action) + "\n")
 
-            return action
-        else:
-            if RaiseAction in observation["legal_actions"] and random.random() < 0.99:
-                min_cost = observation["min_raise"] - observation["my_pip"] # the cost of a minimum bet/raise
-                max_cost = observation["max_raise"] - observation["my_pip"] # the cost of a maximum bet/raise
-                return RaiseAction(observation["max_raise"])
-            if CheckAction in observation["legal_actions"]:
-                return CheckAction()
-            return CallAction()
-
+        return action
 
 if __name__ == '__main__':
     run_bot(Player(), parse_args())
