@@ -160,7 +160,7 @@ class Player(Bot):
                 else:
                     action = CallAction()
             elif CheckAction in observation["legal_actions"]:
-                if (random.random() > 1 - equity * 1/2):
+                if (random.random() > 1 - equity * 1/2 and equity > 0.2):
                     raise_amount = min(int(pot_size*0.75), observation["max_raise"])
                     raise_amount = max(raise_amount, observation["min_raise"])
                     action = RaiseAction(raise_amount)
