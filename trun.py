@@ -11,10 +11,7 @@ import csv
 import random
 from typing import Deque, List
 
-
-from python_skeleton.bluff_prob import BluffPlayer
-from python_skeleton.prob_bot import ProbPlayer
-from python_skeleton.all_in import AllInPlayer
+from engine.evaluate import evaluate
 
 from engine.roundstate import RoundState
 from engine.evaluate import ShortDeck
@@ -50,6 +47,87 @@ from skeleton.actions import (
     FoldAction as sFoldAction,
     RaiseAction as sRaiseAction,
 )
+
+class GameData():
+    def __init__(self, street, pips, hand):
+        self.state = (street, 400 - pips[0], 400 - pips[1], *self.extract_hand(hand), evaluate(hand[0], hand[1]) / 1000 )
+
+    def cur_in(self, player):
+      if player:
+        return self.player_in
+      return self.player_opp
+
+    def frequent_card_count(self, hand):
+      ranks = [int(card[0]) for card in hand]
+      counts = [ranks.count(x) for x in ranks]
+      return max(counts)
+
+    def max_straight_count(self, hand):
+      
+      ranks = [int(card[0]) for card in hand]
+      ranks.sort()
+      max_streak = 0
+      cur = ranks[0] - 1
+      cur_streak = 0
+      for i in range(len(ranks)):
+        if ranks[i] == cur + 1:
+          cur_streak += 1
+        else:
+          cur_streak = 1
+        max_streak = max(max_streak, cur_streak)
+        cur = ranks[i]
+
+      return max_streak
+
+    def frequent_suit_count(self, hand):
+      ranks = [card[1] for card in hand]
+      counts = [ranks.count(x) for x in ranks]
+      return max(counts)
+
+    def max_card(self, hand):
+        s = [int(h[0]) for h in hand]
+        return max(s)
+
+    def extract_hand(self, hand):
+        hand = hand[0] + hand[1]
+
+        return (self.max_card(hand), self.frequent_card_count(hand), self.frequent_suit_count(hand), self.max_straight_count(hand))
+
+    def map_action(self, action, amount, player):
+        if action == "fold":
+          return 0
+        elif action == "check":
+          return 1
+        elif action == "call":
+          return 2
+        if player:
+          self.player_in += amount
+        else:
+          if amount != "NA":
+            self.player_opp += amount
+          else:
+            return 0
+        if amount < 5:
+          return 3
+        elif amount < 25:
+          return 4
+        elif amount < 125:
+          return 5
+        return 6
+
+
+
+
+class HandData():
+    __allowed = ("isfirst", "reward", "hand", "opp_hand", "turns", "bankroll")
+    def __init__(self, **kwarg):
+        for k, v in kwarg.items():
+            assert(k in self.__class__.__allowed)
+            setattr(self, k, v)
+
+    def add_turns(self, turns):
+        self.turns = turns
+
 
 def actionsfix(action): # input type is engine
     if action == FoldAction:
@@ -136,7 +214,7 @@ class Game:
         hands = [deck.deal(2), deck.deal(2)]
         self.players[0].handle_new_round(None, None, None)
         self.players[1].handle_new_round(None, None, None)
-        self.isfirst = (True if random.random > 0.5 else False)
+        self.isfirst = (True if random.random() > 0.5 else False)
         episode = HandData(isfirst = self.isfirst, hand = hands[0] if self.isfirst else hands[1], opp_hand=hands[1] if self.isfirst else hands[0])
         actions=[]
 
@@ -144,12 +222,14 @@ class Game:
         self.new_actions = [deque(), deque()]
         turn = defaultdict(list)
         turn["street"] = 0
+        
+        active = round_state.button % 2
+        player = self.players[active]
+        
+        if active == 1:
 
-        if not self.isfirst:
+            print(player.name)
             action = fixactions(player.get_action(request_obs_translate(round_state, active)))
-            
-            active = round_state.button % 2
-            player = self.players[active]
 
             turn["public_cards"] = round_state.board
             mvmt, amt = actionTranslate(action)
@@ -161,13 +241,13 @@ class Game:
         return round_state
 
     def run_turn(self, round_state, player_action):
-        if turn["street"] < round_state.street:
-            turn = defaultdict(list)
-            turn["street"] = round_state.street
+        turn = defaultdict(list)
+        turn["street"] = round_state.street
 
         # Player 1
         active = round_state.button % 2
-        action = fixactions(player.get_action(player_action))
+        player = self.players[0]
+        action = fixactions(player.get_action(request_obs_translate(round_state, active), player_action))
         
         turn["public_cards"] = round_state.board
         mvmt, amt= actionTranslate(action)
@@ -177,6 +257,8 @@ class Game:
         
         self.new_actions[1 - active].append(action)
         round_state = round_state.proceed(action)
+        if isinstance(round_state, TerminalState):
+          return int(round_state[0][0])
 
         if turn["street"] < round_state.street:
             turn = defaultdict(list)
@@ -188,12 +270,9 @@ class Game:
         
         turn["public_cards"] = round_state.board
         mvmt, amt= actionTranslate(action)
-        if player.name == self.original_players[0].name:    
-            turn["your_action"].append(mvmt)
-            turn["ActionAmt"].append(amt)
-        else:
-            turn["opp_action"].append(mvmt)
-            turn["opp_amount"].append(amt)
+
+        turn["opp_action"].append(mvmt)
+        turn["opp_amount"].append(amt)
 
         action = self._validate_action(action, round_state, player.name)
         self.new_actions[1 - active].append(action)
@@ -211,19 +290,6 @@ class Game:
         ]
         player_names = [self.players[0].name, self.players[1].name]
 
-        if self.printing: print(f"Player 1: {player_names[0]}, Player 2: {player_names[1]}")
-
-        if self.printing: print("Starting match...")
-        self.original_players = self.players.copy()
-        for self.round_num in range(1, NUM_ROUNDS + 1):
-            if self.round_num % 100 == 0:
-                if self.printing: print(f"Starting round {self.round_num}...")
-            self.log.append(f"\nRound #{self.round_num}")
-
-            ret = self.run_round(self.round_num == NUM_ROUNDS)
-            if self.ret: yield ret
-            self.players = self.players[::-1]  # Alternate the dealer
-            self.isfirst != self.isfirst
 
     def _validate_action(
         self, action: Action, round_state: RoundState, player_name: str

@@ -33,6 +33,7 @@ class TrainingPlayer(Bot):
         self.num_rounds = 0
         self.log = []
         self.pre_computed_probs = pickle.load(open("python_skeleton/skeleton/pre_computed_probs.pkl", "rb")) 
+        self.name = "TrainingBot"
         pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:
@@ -80,7 +81,7 @@ class TrainingPlayer(Bot):
 
         return self.log
 
-    def get_action(self, tanay_action) -> Action:
+    def get_action(self, observation, tanay_action) -> Action:
         """
         Where the magic happens - your code should implement this function.
         Called any time the engine needs an action from your bot.
@@ -129,10 +130,10 @@ class TrainingPlayer(Bot):
         self.log.append(f"Equity: {equity}")
         self.log.append(f"Pot odds: {pot_odds}")
 
-        trainRes = None
+        trainRes = tanay_action
 
         if trainRes == 6:
-            self.log.append(f"max raising to {observation["max_raise"]}")
+            self.log.append(f'max raising to {observation["max_raise"]}')
             action = RaiseAction(observation["max_raise"])
         elif trainRes == 5:
             raise_amt = max(observation["max_raise"], 64)

@@ -4,11 +4,6 @@ from io import StringIO
 import os
 from typing import List, Union
 
-from google.auth import default
-from google.auth.exceptions import DefaultCredentialsError
-from google.cloud import storage
-from google.cloud.sql.connector import Connector
-import sqlalchemy
 
 # PARAMETERS TO CONTROL THE BEHAVIOR OF THE GAME ENGINE
 

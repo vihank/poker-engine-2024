@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
 
+from python_skeleton.bluff_prob import BluffPlayer
+from python_skeleton.trainingbot import TrainingPlayer
+from engine.actions import TerminalState
+from trun import GameData
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -53,112 +57,10 @@ import numpy as np
 from collections import defaultdict
 from python_skeleton.skeleton.evaluate import evaluate
 
-class GameData():
-    def __init__(self):
-        self.rounds = []
-
-    def map_cards(self):
-        pass
-
-    def cur_in(self, player):
-      if player:
-        return self.player_in
-      return self.player_opp
-
-    def frequent_card_count(self, hand):
-      ranks = [int(card[0]) for card in hand]
-      counts = [ranks.count(x) for x in ranks]
-      return max(counts)
-
-    def max_straight_count(self, hand):
-      
-      ranks = [int(card[0]) for card in hand]
-      ranks.sort()
-      max_streak = 0
-      cur = ranks[0] - 1
-      cur_streak = 0
-      for i in range(len(ranks)):
-        if ranks[i] == cur + 1:
-          cur_streak += 1
-        else:
-          cur_streak = 1
-        max_streak = max(max_streak, cur_streak)
-        cur = ranks[i]
-
-      return max_streak
-
-    def frequent_suit_count(self, hand):
-      ranks = [card[1] for card in hand]
-      counts = [ranks.count(x) for x in ranks]
-      return max(counts)
-
-    def max_card(self, hand):
-        s = [int(h[0]) for h in hand]
-        return max(s)
-
-    def extract_hand(self, hand):
-        if hand[-1] == " ":
-          hand = hand[:-1]
-        handL = hand.split()
-        
-        return (self.max_card(handL), self.frequent_card_count(handL), self.frequent_suit_count(handL), self.max_straight_count(handL))
-
-    def map_action(self, action, amount, player):
-        if action == "fold":
-          return 0
-        elif action == "check":
-          return 1
-        elif action == "call":
-          return 2
-        if player:
-          self.player_in += amount
-        else:
-          if amount != "NA":
-            self.player_opp += amount
-          else:
-            return 0
-        if amount < 5:
-          return 3
-        elif amount < 25:
-          return 4
-        elif amount < 125:
-          return 5
-        return 6
-
-    def format_turn(self, episode, turn, isfirst, bankroll, hand):
-        if isinstance(turn["public_cards"], float):
-            turn["public_cards"] = ""
-        episode["a"].append(self.map_action(turn["your_action"], turn["your_amount"], True))
-        opponent_cost = self.map_action(turn["opp_action"], turn["opp_amount"], False)
-        hand_s = hand + " " + "".join(turn["public_cards"])
-        episode["s"].append((turn["street"], isfirst, bankroll, self.cur_in(True), self.cur_in(False), *self.extract_hand(hand_s), evaluate(hand_s.split()[:2], hand_s.split()[2:]) / 1000 ))
-        episode["r"].append(0)
-
-    def add_episode(self, info):
-        self.player_in = 2 - info.isfirst
-        self.player_opp = 1 + info.isfirst
-        episode = {"s": [], "a": [], "r": []}
-        for turn in info.turns:
-          self.format_turn(episode, turn, info.isfirst, info.bankroll, info.hand)
-        episode["r"][-1] = info.reward
-        episode["s"].append(None)
-        self.rounds.append(episode)
-
-    def __repr__(self):
-        return '\t'.join([x for x in self.hands])
-
-class HandData():
-    __allowed = ("isfirst", "reward", "hand", "opp_hand", "turns", "bankroll")
-    def __init__(self, **kwarg):
-        for k, v in kwarg.items():
-            assert(k in self.__class__.__allowed)
-            setattr(self, k, v)
-
-    def add_turns(self, turns):
-        self.turns = turns
 
 
 game = Game()
+game.run_match([TrainingPlayer(), BluffPlayer()])
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -176,7 +78,7 @@ TAU = 0.005
 LR = 1e-4
 
 ACTIONS = ["Fold", "Check", "Call", "Raise0", "Raise1", "Raise2", "Raise3",]
-OBSERVATIONS = ["STREET", "BANKROLL", "OUR_IN", "THEIR_IN", "MAX_CARD", "COMMON_RANK", "COMMON_SUIT", "MAX_STRAIGHT", "EQUITY"]
+OBSERVATIONS = ["STREET", "OUR_IN", "THEIR_IN", "MAX_CARD", "COMMON_RANK", "COMMON_SUIT", "MAX_STRAIGHT", "EQUITY"]
 # Get number of actions from gym action space
 n_actions = len(ACTIONS)
 # Get the number of state observations
@@ -267,27 +169,34 @@ else:
 # state is init state
 # info is ??
 
+past_10 = []
+
 for i_episode in range(num_episodes):
     # print(games.rounds[i_episode]["s"])
     state_round = game.run_round(False)
-    state = torch.tensor(state_round, dtype=torch.float32, device=device).unsqueeze(0)
-    format_state = state
-    for t in count():
-        action = select_action(format_state)
-        new_state = game.run_turn(action)
-        observation, reward = game.rounds[i_episode]["s"][t + 1], games.rounds[i_episode]["r"][t] # TODO: Fill in
-        reward = torch.tensor([reward], device=device)
-
-        if observation is None:
-            next_state = None
+    while state_round is not None:
+        if isinstance(state_round, TerminalState):
+          next_state = None
+          reward = torch.tensor([state_round[0][0]], device = device)
         else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
-
+          state_data = GameData(state_round.street, state_round.stacks, [state_round.hands[0], state_round.board]).state
+          state = torch.tensor(state_data, dtype=torch.float32, device=device).unsqueeze(0)
+          action = select_action(state).item()
+          new_state = game.run_turn(state_round, action)
+        if isinstance(new_state, int):
+          next_state = None
+          reward = torch.tensor([new_state], device = device)
+        elif isinstance(state_round, TerminalState):
+          next_state = None
+          reward = torch.tensor([state_round[0][0]], device = device)
+        else:
+          reward = torch.tensor([0], device=device)
+          next_state = new_state
         # Store the transition in memory
         memory.push(state, action, next_state, reward)
 
         # Move to the next state
-        state = next_state
+        state_round = next_state
 
         # Perform one step of the optimization (on the policy network)
         optimize_model()
@@ -300,4 +209,8 @@ for i_episode in range(num_episodes):
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         target_net.load_state_dict(target_net_state_dict)
 
-    print(reward)
+    past_10.append(reward)
+    if len(past_10) > 10:
+      past_10 = past_10[1:]
+
+print(sum(past_10) / 10)
