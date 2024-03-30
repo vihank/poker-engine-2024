@@ -35,10 +35,10 @@ class Player(Bot):
         Nothing.
         """
         
-        self.weighting = np.array([0.01, 0.2, 1.0, 1.5])
+        self.weighting = np.array([0.2, 0.7, 1.5])
         self.c = 0.5
 
-        self.bots = {0: AllInPlayer(), 1: ProbPlayer(), 2: ArnavPlayer(), 3: BluffPlayer()}
+        self.bots = {1: ProbPlayer(), 2: ArnavPlayer(), 3: BluffPlayer()}
 
         self.cur_bot = 0
         self.num_bots = len(self.bots)
