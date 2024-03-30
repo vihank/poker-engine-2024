@@ -6,6 +6,7 @@ import itertools
 import random
 import pickle
 from typing import Optional
+import numpy as np
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
