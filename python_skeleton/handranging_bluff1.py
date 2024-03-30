@@ -14,7 +14,7 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class RangePlayer(Bot):
+class RangePlayer2(Bot):
     """
     A pokerbot.
     """
@@ -133,7 +133,8 @@ class RangePlayer(Bot):
             if observation["opp_stack"] == 0:
                 self.num_shoves += 1
         if (self.num_shoves / self.num_rounds >= 0.2 and 
-            (random.random() >= 0.1)):
+            (random.random() >= 0.1) and
+            self.num_rounds >= 5):
             if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
                 action = RaiseAction(observation["max_raise"])
             elif equity > 0.51 and (CallAction in observation["legal_actions"]):
@@ -180,4 +181,4 @@ class RangePlayer(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(RangePlayer(), parse_args())
+    run_bot(RangePlayer2(), parse_args())

@@ -14,11 +14,10 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 from skeleton.evaluate import evaluate
 
-class AntiAllInPlayer(Bot):
+class RangePlayer1(Bot):
     """
     A pokerbot.
     """
-
     def __init__(self) -> None:
         """
         Called when a new game starts. Called exactly once.
@@ -52,6 +51,7 @@ class AntiAllInPlayer(Bot):
         #round_num = game_state.round_num # the round number from 1 to NUM_ROUNDS
         #my_cards = round_state.hands[active] # your cards
         #big_blind = bool(active) # True if you are the big blind
+        self.num_rounds += 1
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
@@ -74,7 +74,6 @@ class AntiAllInPlayer(Bot):
         #street = previous_state.street # 0, 3, 4, or 5 representing when this round ended
         #my_cards = previous_state.hands[active] # your cards
         #opp_cards = previous_state.hands[1-active] # opponent's cards or [] if not revealed
-        self.num_rounds += 1
         self.log.append("game over")
         self.log.append("================================\n")
 
@@ -134,7 +133,8 @@ class AntiAllInPlayer(Bot):
             if observation["opp_stack"] == 0:
                 self.num_shoves += 1
         if (self.num_shoves / self.num_rounds >= 0.2 and 
-            (random.random() >= 0.1)):
+            (random.random() >= 0.1) and
+            self.num_rounds >= 5):
             if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
                 action = RaiseAction(observation["max_raise"])
             elif equity > 0.51 and (CallAction in observation["legal_actions"]):
@@ -145,7 +145,13 @@ class AntiAllInPlayer(Bot):
                 action = FoldAction()
         else:
             if continue_cost > 1:
-                equity = (equity - 0.5) / 0.5
+                opp_bet = observation["opp_pip"]
+                if (opp_bet > 350):
+                    equity = (equity - 0.9) / (1 - 0.9)
+                elif (opp_bet > 15):
+                    equity = (equity - 0.7) / (1 - 0.7)
+                else:
+                    equity = (equity - 0.5) / (1 - 0.5)
                 self.log.append(f"Adjusted equity: {equity}")
             if equity > 0.9 and RaiseAction in observation["legal_actions"]:
                 action = RaiseAction(observation["max_raise"])
@@ -154,15 +160,25 @@ class AntiAllInPlayer(Bot):
                 raise_amount = max(raise_amount, observation["min_raise"])
                 action = RaiseAction(raise_amount)
             elif CallAction in observation["legal_actions"] and equity >= pot_odds:
-                action = CallAction()
+                if (random.random() > 0.85):
+                    raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+                    raise_amount = max(raise_amount, observation["min_raise"])
+                    action = RaiseAction(raise_amount)
+                else:
+                    action = CallAction()
             elif CheckAction in observation["legal_actions"]:
-                action = CheckAction()
+                if (random.random() > 1 - equity * 7/12 and equity > 0.2):
+                    raise_amount = min(int(pot_size*0.75), observation["max_raise"])
+                    raise_amount = max(raise_amount, observation["min_raise"])
+                    action = RaiseAction(raise_amount)
+                else:
+                    action = CheckAction()
             else:
                 action = FoldAction()
 
-            self.log.append(str(action) + "\n")
+        self.log.append(str(action) + "\n")
 
         return action
 
 if __name__ == '__main__':
-    run_bot(ArnavPlayer(), parse_args())
+    run_bot(RangePlayer1(), parse_args())

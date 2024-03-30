@@ -8,9 +8,12 @@ import pickle
 from typing import Optional
 import numpy as np
 
-from antiallin_prob import ArnavPlayer
+from antiallin_prob import AntiAllInPlayer
 from bluff_prob import BluffPlayer
-from handranging import RangePlayer
+from handranging_bluff0 import RangePlayer1
+from handranging_bluff1 import RangePlayer2
+from handranging_bluff2 import RangePlayer3
+
 
 from skeleton.actions import Action, CallAction, CheckAction, FoldAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
@@ -34,10 +37,10 @@ class Player(Bot):
         Nothing.
         """
         
-        self.weighting = np.array([0.02, 0.05, 0.83])
+        self.weighting = np.array([0.03, 0.35, 0.5, 0.1])
         self.c = 0.5
 
-        self.bots = {0: ArnavPlayer(), 1: BluffPlayer(), 2: RangePlayer()}
+        self.bots = {0: AntiAllInPlayer(), 1: RangePlayer1(), 2: RangePlayer2(), 3: RangePlayer3()}
 
         self.cur_bot = 0
         self.num_bots = len(self.bots)
