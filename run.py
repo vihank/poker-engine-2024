@@ -28,7 +28,7 @@ if __name__ == "__main__":
         game_engine_process.join()
     else:
         player1_process = subprocess.Popen(
-            ["python", "python_skeleton/handranging_bluff2.py", "--port", "50051"]
+            ["python", "python_skeleton/antiallin_prob.py", "--port", "50051"]
         )
         player2_process = subprocess.Popen(
             ["python", "python_skeleton/player.py", "--port", "50052"]

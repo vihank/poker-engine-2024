@@ -165,4 +165,4 @@ class AntiAllInPlayer(Bot):
         return action
 
 if __name__ == '__main__':
-    run_bot(ArnavPlayer(), parse_args())
+    run_bot(AntiAllInPlayer(), parse_args())

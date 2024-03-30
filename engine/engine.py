@@ -41,7 +41,7 @@ class Game:
     Manages logging and the high-level game procedure.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, all_logs = True) -> None:
         self.players: List[Client] = []
         self.log: List[str] = [
             f"CMU Poker Bot Game - {PLAYER_1_NAME} vs {PLAYER_2_NAME}"
@@ -61,6 +61,7 @@ class Game:
         ]
         self.new_actions: List[Deque[Action]] = [deque(), deque()]
         self.round_num = 0
+        self.all_logs = all_logs
 
     def log_round_state(self, round_state: RoundState):
         """
@@ -207,15 +208,15 @@ class Game:
         self.log.append(f"{self.original_players[0].name} Bankroll: {self.original_players[0].bankroll}")
         self.log.append(f"{self.original_players[1].name} Bankroll: {self.original_players[1].bankroll}")
         
-        filename = 'all_results.csv'
-        with open(filename, 'w', newline="") as file:
+        filename = './all_results.csv'
+        with open(filename, 'a', newline="") as file:
             csvwriter = csv.writer(file) # 2. create a csvwriter object
             csvwriter.writerow([self.original_players[0].bankroll, self.original_players[1].bankroll])
+        file.close()
 
-
-        csv.reader()
-        self._finalize_log()
-        add_match_entry(self.original_players[0].bankroll, self.original_players[1].bankroll)
+        if self.all_logs:
+            self._finalize_log()
+            add_match_entry(self.original_players[0].bankroll, self.original_players[1].bankroll)
 
     def _finalize_log(self) -> None:
         """

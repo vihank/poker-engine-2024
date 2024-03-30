@@ -37,7 +37,7 @@ class Player(Bot):
         Nothing.
         """
         
-        self.weighting = np.array([0.03, 0.35, 0.5, 0.1])
+        self.weighting = np.array([0.03, 0.33, 0.3, 0.5])
         self.c = 0.5
 
         self.bots = {0: AntiAllInPlayer(), 1: RangePlayer1(), 2: RangePlayer2(), 3: RangePlayer3()}
