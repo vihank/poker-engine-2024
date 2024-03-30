@@ -134,9 +134,9 @@ class Player(Bot):
                 self.num_shoves += 1
         if (self.num_shoves / self.num_rounds >= 0.2 and 
             (random.random() >= 0.1)):
-            if equity > 0.8 and (RaiseAction in observation["legal_actions"]):
+            if equity > 0.51 and (RaiseAction in observation["legal_actions"]):
                 action = RaiseAction(observation["max_raise"])
-            elif equity > 0.8 and (CallAction in observation["legal_actions"]):
+            elif equity > 0.51 and (CallAction in observation["legal_actions"]):
                 action = CallAction()
             elif CheckAction in observation["legal_actions"]:
                 action = CheckAction()
