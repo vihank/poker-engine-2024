@@ -6,6 +6,7 @@ import csv
 
 from engine.engine import Game
 
+excluded_files = set(["arnav_testing.py", "csv_scraper.py", "rl_bot.py"])
 
 def parse_args():
     parser = ArgumentParser()
@@ -19,7 +20,7 @@ def run_game_engine() -> None:
     """
     Runs the game engine process.
     """
-    game = Game()
+    game = Game(False)
     game.run_match()
 
 
@@ -32,12 +33,12 @@ if __name__ == "__main__":
         game_engine_process.join()
     else:
         for filename in os.listdir("./python_skeleton/"):
-            if filename[-3:] == ".py" and filename != args.p:
-                filename = 'all_results.csv'
-                with open(filename, 'w', newline="") as file:
+            if filename[-3:] == ".py" and filename != args.p and filename not in excluded_files:
+                csvfile = './all_results.csv'
+                with open(csvfile, 'a', newline="") as file:
                     csvwriter = csv.writer(file) # 2. create a csvwriter object
                     csvwriter.writerow([args.p, filename])
-
+                file.close()
                 player1_process = subprocess.Popen(
                     ["python", "python_skeleton/" + args.p, "--port", "50051"]
                 )
