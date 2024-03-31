@@ -135,9 +135,9 @@ class Game:
         ]
         self.new_actions: List[Deque[Action]] = [deque(), deque()]
         self.round_num = 0
-        self.logging = logging
-        self.printing = printing
-        self.ret = ret
+        self.logging = True
+        self.printing = True
+        self.ret = False
         self.isfirst = True
 
     def log_round_state(self, round_state: RoundState):
@@ -195,22 +195,23 @@ class Game:
         """
         Runs one round of poker (1 hand).
         """
+        print("RUNNING ROUND")
         pips = [SMALL_BLIND, BIG_BLIND]
         stacks = [STARTING_STACK - SMALL_BLIND, STARTING_STACK - BIG_BLIND]
         deck = ShortDeck()
         deck.shuffle()
         hands = [deck.deal(2), deck.deal(2)]
         self.players[0].handle_new_round(None, None, None)
+        
         self.players[1].handle_new_round(None, None, None)
 
         episode = HandData(isfirst = self.isfirst, hand = hands[0] if self.isfirst else hands[1], opp_hand=hands[1] if self.isfirst else hands[0])
         actions=[]
-
+    
         round_state = RoundState(0, 0, pips, stacks, hands, [], deck, None)
         self.new_actions = [deque(), deque()]
         turn = defaultdict(list)
         turn["street"] = 0
-
         while not isinstance(round_state, TerminalState):
             if self.logging: self.log_round_state(round_state)
             if turn["street"] < round_state.street:
@@ -285,7 +286,7 @@ class Game:
             self.log.append(f"\nRound #{self.round_num}")
 
             ret = self.run_round((self.round_num == NUM_ROUNDS), gameData)
-            if self.ret: yield ret
+
             self.players = self.players[::-1]  # Alternate the dealer
             self.isfirst != self.isfirst
 
@@ -388,7 +389,7 @@ class Game:
 
 if __name__ == '__main__':
     game = Game(logging=True, ret=True)
-    for strat in [BluffPlayer()]:
-        print(f"{list(game.run_match([TrainingPlayer(), strat]))[-1].reward} against {strat.name}")
+    for strat in [Player()]:
+        print(f"{list(game.run_match([TrainingPlayer(), strat]))[-1]} against {strat.name}")
     # probs a good idea to check if the names are as you exepect coming out of this thing
     # print("Game Over")

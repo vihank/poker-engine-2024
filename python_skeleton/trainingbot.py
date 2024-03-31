@@ -100,16 +100,6 @@ class GameData():
           return 5
         return 6
 
-class HandData():
-    __allowed = ("isfirst", "reward", "hand", "opp_hand", "turns", "bankroll")
-    def __init__(self, **kwarg):
-        for k, v in kwarg.items():
-            assert(k in self.__class__.__allowed)
-            setattr(self, k, v)
-
-    def add_turns(self, turns):
-        self.turns = turns
-
 class TrainingPlayer(Bot):
     """
     A pokerbot.
@@ -132,6 +122,7 @@ class TrainingPlayer(Bot):
         self.model = torch.load("python_skeleton/model.pt", weights_only=False, map_location=torch.device('cpu'))
         self.name = "Training Player"
         self.bankroll=0
+        self.reward = 0
         pass
 
     def handle_new_round(self, game_state: GameState, round_state: RoundState, active: int) -> None:
@@ -146,6 +137,7 @@ class TrainingPlayer(Bot):
         Returns:
             None
         """
+        print("HI")
         #my_bankroll = game_state.bankroll # the total number of chips you've gained or lost from the beginning of the game to the start of this round
         #game_clock = game_state.game_clock # the total number of seconds your bot has left to play this game
         #round_num = game_state.round_num # the round number from 1 to NUM_ROUNDS
@@ -154,6 +146,7 @@ class TrainingPlayer(Bot):
         self.log = []
         self.log.append("================================")
         self.log.append("new round")
+        print("start")
         pass
 
     def handle_round_over(self, game_state: GameState, terminal_state: TerminalState, active: int, is_match_over: bool) -> Optional[str]:
@@ -205,10 +198,8 @@ class TrainingPlayer(Bot):
         """
 
         inputs = GameData(observation["street"], [observation["my_pip"], observation["opp_pip"]], [observation["my_stack"], observation["opp_stack"]], [observation["my_cards"], observation["board_cards"]])
-        print(inputs)
         state = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0) 
-        trainRes = np.argmax(self.model(state))
-        print(trainRes)
+        trainRes = np.argmax(self.model.forward(state))
         
         if trainRes == 6:
             self.log.append(f"max raising to {observation["max_raise"]}")
@@ -234,7 +225,6 @@ class TrainingPlayer(Bot):
         else:
             self.log.append("fold actioning")
             action = FoldAction()
-        assert(False)
         return action
 
 if __name__ == '__main__':
